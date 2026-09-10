@@ -38,7 +38,7 @@ acc login --email
 For non-interactive / CI use, skip login by exporting a PAT:
 
 ```bash
-export AF_TOKEN="pat_…"             # create at https://app.alternatefutures.ai or via `acc pat create`
+export AF_TOKEN="pat_…"             # create with `acc pat create` (shown once)
 export AF_PROJECT_ID="cmn…"
 ```
 

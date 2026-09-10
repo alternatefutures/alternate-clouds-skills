@@ -30,10 +30,10 @@ If they didn't:
 
 ```bash
 acc templates list                       # browse by category
-# Categories: AI_ML, GAME_SERVER, DATABASE, DEVTOOLS, WEB_SERVER, STORAGE
+acc templates list --category AI_ML      # AI_ML | WEB_SERVER | GAME_SERVER | DATABASE | DEVTOOLS | CUSTOM
 ```
 
-Pick the template id (typically slugged like `postgres-16`, `ollama`, `comfyui-stable`).
+Pick the template id (for example `postgres`, `redis`, `ollama-gpu`, `comfyui`, `alternate-agent`, `minecraft-server`).
 
 ## Step 3 — collect required env vars
 
@@ -78,12 +78,12 @@ GPU-bearing templates (e.g. ComfyUI, vLLM) — if the template defaults already 
 For confidential / TEE deploys:
 
 ```bash
-... --confidential        # routes to Phala
+... --confidential        # deploy on a TEE
 ```
 
 ## Composite templates
 
-If `acc templates info <id>` shows `components: [...]` (a multi-service bundle — e.g. app+db+cache), the CLI refuses with a clear error and points at the dashboard. Composite templates need per-component provider routing that the CLI doesn't prompt for yet. Tell the user to deploy from `https://app.alternatefutures.ai` and circle back.
+If `acc templates info <id>` shows `components: [...]` (a multi-service bundle — e.g. app+db+cache), the CLI refuses with a clear error and points at the dashboard. Composite templates need per-component provider routing that the CLI doesn't prompt for yet. Tell the user to deploy from `https://clouds.alternatefutures.ai` and circle back.
 
 ## Step 5 — verify + connect
 
@@ -100,7 +100,7 @@ The deploy poller prints connection details when ACTIVE:
 ## Example: Postgres
 
 ```bash
-acc services create --kind template --template postgres-16 \
+acc services create --kind template --template postgres \
   --name app-db \
   --env POSTGRES_PASSWORD="$(openssl rand -base64 24)" \
   --env POSTGRES_DB=app \
@@ -119,7 +119,7 @@ acc services deploy my-app   # redeploy to materialize the new env keys
 ## Example: Ollama (GPU)
 
 ```bash
-acc services create --kind template --template ollama \
+acc services create --kind template --template ollama-gpu \
   --name local-llm \
   --gpu --gpu-model h100 \
   --region us-east \
@@ -134,7 +134,7 @@ acc ssh local-llm --command "ollama pull llama3"
 
 ## Common pitfalls
 
-- **"Template not found"** with `--template` → the id is wrong. Run `acc templates list` and copy the exact id (templates are slug-cased, e.g. `postgres-16`, not `postgres:16`).
+- **"Template not found"** with `--template` → the id is wrong. Run `acc templates list` and copy the exact id (ids are slugs, e.g. `postgres`, `ollama-gpu`, not `postgres:16`).
 - **"Missing required template env vars"** under `-y` → the template requires keys you didn't pass. The error lists them; add each as `--env KEY=VALUE`.
 - **"Composite templates need per-component provider routing"** → use the dashboard, not the CLI.
 - Server-side resource validation: if the template declares a `minMemory` higher than your `--memory` override, the deploy will reject. Check `acc templates info <id>` for floors.

@@ -12,7 +12,7 @@ A static site = a directory of HTML/CSS/JS/images served by nginx. The shortest 
 3. Push it to a container registry the platform can pull from.
 4. `acc services create --kind docker --image <ref> --port 80 -y`.
 
-The CLI does the rest: routes to Akash (CPU-only, no GPU needed), polls to ACTIVE, prints the public URL.
+The CLI does the rest: places it on standard compute (no GPU), polls to ACTIVE, prints the public URL.
 
 ## Prerequisites
 
@@ -62,7 +62,7 @@ EXPOSE 80
 # Pick a name and tag once.
 IMG=ghcr.io/<github-user>/<site-name>:v1
 
-# Build for amd64 (Akash hosts are amd64; building on Apple Silicon
+# Build for amd64 (provider hosts are amd64; building on Apple Silicon
 # without --platform produces an arm64 image that won't run).
 docker build --platform linux/amd64 -t "$IMG" site/
 
@@ -71,8 +71,8 @@ docker push "$IMG"
 
 If the user's GHCR namespace is private, **make the package public** at
 `https://github.com/users/<user>/packages/container/<site-name>/settings`
-(Visibility → Public). Akash hosts can't auth into private registries
-by default — a 401/404 on deploy is almost always this.
+(Visibility → Public). The platform pulls images anonymously; a 401/404 on
+deploy is almost always this.
 
 ## Step 4 — deploy
 
@@ -109,13 +109,13 @@ acc services delete my-site -y
 acc services create --kind docker --name my-site --image ghcr.io/…/my-site:v2 --port 80 -y
 ```
 
-**Never reuse the same tag (`:latest`, `:v1`).** Akash providers cache by tag — pushing a new image under the same tag doesn't trigger a re-pull. Always bump.
+**Never reuse the same tag (`:latest`, `:v1`).** Providers cache by tag — pushing a new image under the same tag doesn't trigger a re-pull. Always bump.
 
 ## Common failure modes
 
 - **Build hangs / 401 on `docker push`** → `docker login ghcr.io` not done.
 - **Deploy goes to ACTIVE but URL returns 404** → nginx default conf served from `/usr/share/nginx/html` but the COPY landed in a subdirectory. Verify `RUN ls /usr/share/nginx/html` builds correctly.
-- **Deploy stuck at "Waiting for provider bids" and exits with code 2** → Akash region soft-fail. CLI prints 2–3 alternative regions. Re-run with the suggested `--region`.
+- **Deploy stuck at "Waiting for provider bids" and exits with code 2** → region soft-fail. CLI prints 2–3 alternative regions. Re-run with the suggested `--region`.
 - **`no match for platform in manifest`** → forgot `--platform linux/amd64`. Rebuild.
 
 ## Why not a template?

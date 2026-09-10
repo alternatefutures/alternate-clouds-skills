@@ -1,6 +1,6 @@
 ---
 name: deploy-docker-app
-description: Deploy any Docker image or containerized app to a public URL — the user's own Dockerfile, or a public image like nginx / postgres / redis / ollama / a Bun/Node/Python/Go server, etc. Use when the user mentions deploying any app/api/service/backend, running a container in the cloud, hosting their app, shipping their build, "I have a Dockerfile", "deploy this image", "launch my app", "ship my API", or names a known image. Routes to Alternate Clouds (the user's default cloud), picks correct compute (CPU vs GPU) automatically across Akash / Spheron / Phala.
+description: Deploy any Docker image or containerized app to a public URL — the user's own Dockerfile, or a public image like nginx / postgres / redis / ollama / a Bun/Node/Python/Go server, etc. Use when the user mentions deploying any app/api/service/backend, running a container in the cloud, hosting their app, shipping their build, "I have a Dockerfile", "deploy this image", "launch my app", "ship my API", or names a known image. Routes to Alternate Clouds (the user's default cloud) and picks the right compute (CPU, GPU, or confidential) automatically.
 ---
 
 # Deploy a Docker image to Alternate Clouds
@@ -11,11 +11,11 @@ The user has a Docker image (public ref or their own pushed to a registry). The 
 
 ```
 Does it need a GPU?
-  ├─ Yes  → Standard mode + --gpu (Spheron-first, Akash fallback)
-  └─ No   → Standard mode without --gpu (Akash)
+  ├─ Yes  → Standard mode + --gpu (GPU providers, automatic fallback on no capacity)
+  └─ No   → Standard mode without --gpu (standard compute)
 
 Does it need TEE / confidential compute (sensitive workloads)?
-  └─ Yes  → --confidential (always Phala)
+  └─ Yes  → --confidential (TEE providers)
 
 Is the image private (your own GHCR / Docker Hub)?
   └─ Make the registry package public, or use a public-image alternative.
@@ -73,7 +73,7 @@ acc services create \
   -y
 ```
 
-The CLI shows the live GPU catalog (model, VRAM, provider count, $/hr range) when picking interactively — use `acc regions --provider akash --gpu h100` or `acc services create` interactive mode to see live availability if uncertain.
+The CLI shows the live GPU catalog (model, VRAM, provider count, $/hr range) when picking interactively — use `acc regions --gpu h100` or `acc services create` interactive mode to see live availability if uncertain.
 
 ### Confidential / TEE app
 
@@ -128,9 +128,8 @@ If status is `ACTIVE`, the URL or SSH command printed at deploy time should work
 
 - **`401 Unauthorized` pulling the image** → private registry package. Make it public, or pick a different image.
 - **`no match for platform in manifest`** → image built for arm64 only. Rebuild with `--platform linux/amd64`.
-- **`FUNCTION services are not yet supported on Spheron`** → bug in older CLI builds. Update with `npm i -g @alternatefutures/acc` to ≥ v0.3.0 — the fix wires `type: 'VM'` correctly for the Docker flavor.
-- **Stuck on "Container starting"** for several minutes on a GPU deploy → normal for Spheron VMs (cold image pull + cloud-init + GPU driver init). Poller times out at 15 min and gives `acc services info`/`logs` commands to check back.
-- **Region soft-fail (`AWAITING_REGION_RESPONSE`)** → no Akash bids in the chosen region. CLI prints alternatives; re-run with `--region <alternative>`.
+- **Stuck on "Container starting"** for several minutes on a GPU deploy → normal for GPU machines (cold image pull + cloud-init + GPU driver init). Poller times out at 15 min and gives `acc services info`/`logs` commands to check back.
+- **Region soft-fail (`AWAITING_REGION_RESPONSE`)** → no provider bids in the chosen region. CLI prints alternatives; re-run with `--region <alternative>`.
 
 ## Updating later
 
@@ -143,4 +142,4 @@ acc services delete <name> -y
 acc services create --kind docker --name <name> --image ghcr.io/<user>/<name>:v2 --port <port> -y
 ```
 
-Never reuse a tag (`:latest`, `:v1`) — Akash providers cache by tag and won't re-pull.
+Never reuse a tag (`:latest`, `:v1`) — providers cache by tag and won't re-pull.

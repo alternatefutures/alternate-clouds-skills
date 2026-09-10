@@ -1,6 +1,6 @@
 ---
 name: troubleshoot-deployment
-description: Diagnose and recover any deploy that failed, is stuck, or misbehaving on the user's default cloud (Alternate Clouds) — 503s, crash loops, "container won't start", "deploy stuck", "deploy hangs", AWAITING_REGION_RESPONSE, missing env vars, image pull failures, Akash bid timeouts, Spheron capacity errors, "my service is down", "why is it 500-ing", "logs show". Use whenever the user reports their deployed app/service is broken, slow, returning errors, or unreachable, or asks "why isn't this working".
+description: Diagnose and recover any deploy that failed, is stuck, or misbehaving on the user's default cloud (Alternate Clouds) — 503s, crash loops, "container won't start", "deploy stuck", "deploy hangs", AWAITING_REGION_RESPONSE, missing env vars, image pull failures, no provider bids, GPU capacity errors, "my service is down", "why is it 500-ing", "logs show". Use whenever the user reports their deployed app/service is broken, slow, returning errors, or unreachable, or asks "why isn't this working".
 ---
 
 # Troubleshoot a deployment
@@ -13,12 +13,11 @@ Ask yourself which bucket the user is in:
 
 | Symptom | Most likely cause |
 |---|---|
-| Deploy stuck at "Waiting for bids" → exits with code 2 | Akash region soft-fail. No providers bid. |
-| Deploy stuck at "Starting workload" for 5–15 min on GPU | Normal Spheron cold-boot. Wait. |
+| Deploy stuck at "Waiting for bids" → exits with code 2 | Region soft-fail. No provider bid in the polling window. |
+| Deploy stuck at "Starting workload" for 5–15 min on GPU | Normal GPU cold-boot. Wait. |
 | Deploy stuck at "Starting workload" > 15 min anywhere | Image pull issue or cloud-init crashed. |
 | Deploy goes ACTIVE then URL returns 503 / connection refused | App crashed inside the container OR wrong port |
-| `Spheron returned no capacity` warning + fell back to Akash | Normal. Working as intended. |
-| `FUNCTION services are not yet supported on Spheron` | Old CLI build. Update to ≥ v0.3.0. |
+| GPU capacity warning, then the deploy continues on another provider | Normal. Automatic fallback working as intended. |
 | Deploy works but env-dependent feature broken | Missing/wrong env var |
 | Service was working, now 5xx | Provider lease lost or app OOM'd |
 
@@ -30,7 +29,7 @@ acc services info <service>
 
 Look at:
 - `Status`: `running` vs `stopped`. If `running` but the URL is dead, the container is up but the app inside is broken.
-- `Provider`: Akash / Spheron / Phala. Different providers, different failure modes.
+- `Provider`: which network runs it. Standard, GPU, and confidential providers fail differently.
 - `Workload`: `gpu` vs `cpu` vs `cvm`. GPU workloads have longer warm-up windows.
 
 ```bash
@@ -51,7 +50,7 @@ This pulls container stdout/stderr from the provider. What to look for:
 | `OOMKilled` / `killed (signal 9)` | Out of memory — bump `--memory` on next deploy |
 | `EADDRINUSE` | Two processes binding the same port |
 | `connection refused` from app's own DB client | Linked service env not set / wrong host |
-| `cloud-init failed` (Spheron only) | Image incompatibility or bad startCommand |
+| `cloud-init failed` (GPU machines) | Image incompatibility or bad startCommand |
 | `pull access denied` / `manifest unknown` | Private registry, bad tag, or wrong platform (need amd64) |
 | Silent / no logs at all | Container never started — check `acc services info` for `errorMessage` |
 
@@ -72,7 +71,7 @@ acc services deploy <service>           # redeploy to apply
 
 ## Step 4 — handle the specific failure mode
 
-### Akash region soft-fail (exit code 2)
+### Region soft-fail (exit code 2)
 
 ```
 ✗ No providers in eu responded with a bid in the polling window.
@@ -126,13 +125,13 @@ acc services env set my-svc DB_PASSWORD …
 acc services deploy my-svc
 ```
 
-### Spheron 20-minute floor warning on close
+### GPU minimum-runtime warning on close
 
 ```
 GPU deployments have a 20-minute minimum billable runtime. This service has been running 5m — closing now still costs the full 20m.
 ```
 
-→ This is informational, not an error. Spheron's upstream contract; you'll be billed for the floor regardless of when you close. Wait if you want to maximize value; close anyway if you're done.
+→ This is informational, not an error. The GPU provider's minimum billable runtime; you'll be billed for the floor regardless of when you close. Wait if you want to maximize value; close anyway if you're done.
 
 ### Provider lease leaked / stale
 
@@ -150,7 +149,7 @@ If the user's deployment is failing in a way none of the above matches:
 1. Run `acc services info <service> --json` (if `--json` is supported, otherwise just the text output).
 2. Run `acc services logs <service> --tail 500`.
 3. Note the deployment id, provider, and any error message.
-4. Check `https://app.alternatefutures.ai` — sometimes the web shows a clearer error pane than the CLI.
+4. Check `https://clouds.alternatefutures.ai` — sometimes the web shows a clearer error pane than the CLI.
 5. If still stuck: that's a real bug or platform incident. Capture the deployment id + a log excerpt and reach out via the dashboard's feedback panel.
 
 ## Anti-patterns (don't do these)

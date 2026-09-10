@@ -1,9 +1,9 @@
 # Alternate Cloud — AI assistant plugin
 
 One plugin, three platforms. Lets Claude Code, Cursor, and OpenAI Codex
-deploy and manage workloads on **[Alternate Clouds](https://alternatefutures.ai)** —
-the multi-provider compute platform spanning Akash, Spheron GPU, and
-Phala TEE — through natural language.
+deploy and manage workloads on **[Alternate Clouds](https://clouds.alternatefutures.ai)**,
+the provider-agnostic compute platform for containers, GPU and confidential
+workloads, through natural language.
 
 Bundles the `acc` CLI reference plus task-specific skills for static
 sites, Docker apps, templates, raw servers, and troubleshooting. The
@@ -33,7 +33,7 @@ Plus:
 The fastest path on any platform:
 
 ```bash
-git clone https://github.com/alternatefutures/alternate-skills ~/.alternate-skills
+git clone https://github.com/alternatefutures/alternate-clouds-skills ~/.alternate-skills
 bash ~/.alternate-skills/install.sh
 ```
 
@@ -58,7 +58,7 @@ Available on the [Cursor Marketplace](https://cursor.com/marketplace):
 #### Claude Code — plugin marketplace
 
 ```
-/plugin marketplace add https://github.com/alternatefutures/alternate-skills
+/plugin marketplace add https://github.com/alternatefutures/alternate-clouds-skills
 /plugin install alternate-cloud@alternate-cloud
 ```
 
@@ -67,7 +67,7 @@ Available on the [Cursor Marketplace](https://cursor.com/marketplace):
 Codex has no central marketplace. Clone the repo and let `install.sh` set up the symlinks:
 
 ```bash
-git clone https://github.com/alternatefutures/alternate-skills ~/.alternate-skills
+git clone https://github.com/alternatefutures/alternate-clouds-skills ~/.alternate-skills
 bash ~/.alternate-skills/install.sh codex
 ```
 
@@ -141,7 +141,7 @@ alternate-skills/
 
 - CLI on npm: [@alternatefutures/acc](https://www.npmjs.com/package/@alternatefutures/acc)
 - Platform: [alternatefutures.ai](https://alternatefutures.ai)
-- Docs: [alternatefutures.ai/docs](https://alternatefutures.ai/docs)
+- Docs: [docs.alternatefutures.ai](https://docs.alternatefutures.ai) (agents: [/llms.txt](https://docs.alternatefutures.ai/llms.txt))
 
 ## License
 
