@@ -39,8 +39,12 @@ interactive prompts (Ctrl+C / ESC) exit `130`, not `0`.
 ```bash
 acc whoami --json
 # {"authenticated":true,"user":{"id":"...","email":"...","username":null,"walletAddress":null},
+#  "organization":{"id":"...","slug":"...","name":"...","role":"OWNER"},
 #  "project":{"id":"...","name":"...","slug":"..."}}
 ```
+
+`organization` (acc 1.1.1+) is the org the CLI acts on; templates that need
+`AF_ORG_ID` (e.g. `alternate-agent`) take `organization.id`.
 
 **Automation / CI**: skip interactive login with env vars.
 

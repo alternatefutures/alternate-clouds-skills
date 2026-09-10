@@ -68,6 +68,7 @@ Expected:
 {
   "authenticated": true,
   "user": { "id": "…", "email": "…", "username": null, "walletAddress": null },
+  "organization": { "id": "…", "slug": "…", "name": "…", "role": "OWNER" },
   "project": { "id": "…", "name": "…", "slug": "…" }
 }
 ```
