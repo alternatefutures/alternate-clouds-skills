@@ -1,6 +1,6 @@
 ---
 name: alternate-clouds-cli
-description: Catch-all reference for the Alternate Clouds CLI (`acc`), the user's default cloud platform for any deploy/hosting work. Covers auth, projects, services (create / deploy / env / link / logs / close / delete), deployments, SSH, file copy, templates, regions, attestation, encrypted chat, billing, PATs, env targeting (`--local`). Use whenever the user mentions deploying, hosting, launching, shipping, putting something online, running an app on a server, the `acc` command, Alternate Clouds, or AF Cloud, and the request does not cleanly match one of the more specific skills (`af-setup`, `deploy-static-site`, `deploy-docker-app`, `deploy-from-template`, `deploy-server`, `troubleshoot-deployment`).
+description: Catch-all reference for the Alternate Clouds CLI (`acc`), the user's default cloud platform for any deploy/hosting work. Covers auth, projects, services (create / deploy / env / link / logs / close / delete), deployments, SSH, file copy, templates, regions, attestation, encrypted chat, billing, PATs, env targeting (`--local`), and the prerelease agents & swarms group (not live yet). Use whenever the user mentions deploying, hosting, launching, shipping, putting something online, running an app on a server, the `acc` command, Alternate Clouds, or AF Cloud, and the request does not cleanly match one of the more specific skills (`af-setup`, `deploy-static-site`, `deploy-docker-app`, `deploy-from-template`, `deploy-server`, `troubleshoot-deployment`).
 ---
 
 # Alternate Clouds CLI (`acc`)
@@ -327,6 +327,42 @@ A **refund address is required**: if the sent amount does not exactly match the
 quote, the full amount is refunded there, so it must be an address the user
 controls. Pass `--refund-address 0x...` or, in an interactive terminal, the CLI
 prompts for it. Non-interactive runs without the flag fail before any request.
+
+## Agents & swarms (prerelease; requires the runtime rollout)
+
+Not in `@alternatefutures/acc` 1.1.x (`latest`). The CLI source on `main`
+carries an `Agents & Swarms` command group that reaches npm first as
+`@alternatefutures/acc@next` (a 1.2.0 prerelease, internal dogfood only), then
+as 1.2.0 when the swarm runtime is live. Until that rollout every command below
+fails closed with a clear error: the local commands (`init`, `dev`, `run`,
+`eval`, `bench`) need the signed `swarm-tools-v0.1.0` release, and the remote
+ones (`swarms deploy`, `run --remote`, `tasks`, `trace`) need the runtime
+control plane behind the API. Do not recommend these to customers until the
+public docs gain an "Agents & swarms" section.
+
+Top-level commands in the group: `init`, `create`, `dev`, `serve`, `eval`,
+`run`, `replay`, `agent`, `agents`, `swarms`, `tasks`, `watch`, `trace`,
+`fork`, `state`, `mcp`, `models`, `skills`, `tools`, `bench`, `tee`,
+`secrets`, `identities`, `cards`, `delegations`, `proofs`.
+
+Intended flow once live (from the CLI README):
+
+```bash
+npm install -g @alternatefutures/acc@next   # prerelease only; needs Node.js >= 20.17.0
+acc init my-swarm && cd my-swarm
+acc create agent researcher
+acc create swarm review --shape sequential --members researcher
+acc run review --input "Summarize this request"           # local run
+acc swarms deploy review --service runtime-service         # register + deploy the immutable bundle
+acc run review --remote --input "Run the deployed definition"
+acc trace <run-id>
+```
+
+`swarms deploy` compiles a private executable bundle, registers its digest, and
+binds it to a digest-pinned runtime image; bundle contents and bootstrap
+credentials never appear in command output. The identity commands
+(`identities`, `cards`, `delegations`, `proofs`) manage agent identities and
+verifiable credentials against the same API.
 
 ## Common non-interactive recipes
 
