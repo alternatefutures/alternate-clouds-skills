@@ -330,14 +330,16 @@ prompts for it. Non-interactive runs without the flag fail before any request.
 
 ## Agents & swarms (prerelease; requires the runtime rollout)
 
-Not in `@alternatefutures/acc` 1.1.x (`latest`). The CLI source on `main`
-carries an `Agents & Swarms` command group that reaches npm first as
-`@alternatefutures/acc@next` (a 1.2.0 prerelease, internal dogfood only), then
-as 1.2.0 when the swarm runtime is live. Until that rollout every command below
-fails closed with a clear error: the local commands (`init`, `dev`, `run`,
-`eval`, `bench`) need the signed `swarm-tools-v0.1.0` release, and the remote
-ones (`swarms deploy`, `run --remote`, `tasks`, `trace`) need the runtime
-control plane behind the API. Do not recommend these to customers until the
+Not in `@alternatefutures/acc` 1.1.x (`latest`). The `Agents & Swarms` command
+group ships as `@alternatefutures/acc@next` (1.2.0-beta.1, published
+2026-09-11, internal dogfood only) and becomes 1.2.0 when the swarm runtime is
+live. Until that rollout only the local scaffolding works (`init`, `create
+agent`, `create swarm` write `swarm.toml` plus `agents/`, `personas/`,
+`skills/`); everything that executes fails closed with a clear error: `dev`,
+`run`, `eval`, `bench` and even `agents list` need the signed
+`swarm-tools-v0.1.0` release, and the remote commands (`swarms deploy`,
+`run --remote`, `tasks`, `trace`) need the runtime control plane behind the
+API. Do not recommend these to customers until the
 public docs gain an "Agents & swarms" section.
 
 Top-level commands in the group: `init`, `create`, `dev`, `serve`, `eval`,
