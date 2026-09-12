@@ -372,6 +372,14 @@ and `--service` are mutually exclusive. The identity commands
 (`identities`, `cards`, `delegations`, `proofs`) manage agent identities and
 verifiable credentials against the same API.
 
+`acc secrets set <NAME> --stdin --project <id>` stores a runtime secret for the
+project (Infisical-backed; the value is read from the pipe, never from argv,
+and never echoed). Byte handling: a single-line value loses exactly one
+trailing newline (the one `echo` adds); a multi-line document is stored
+byte-exact, final newline included. Multi-line runtime files such as the state
+keyring depend on that final newline (fixed 2026-09-13; earlier builds shortened
+every value by one byte).
+
 ## Common non-interactive recipes
 
 ```bash
