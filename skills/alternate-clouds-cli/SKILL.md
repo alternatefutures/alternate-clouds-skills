@@ -355,14 +355,20 @@ acc init my-swarm && cd my-swarm
 acc create agent researcher
 acc create swarm review --shape sequential --members researcher
 acc run review --input "Summarize this request"           # local run
-acc swarms deploy review --service runtime-service         # register + deploy the immutable bundle
+acc swarms deploy review --image ghcr.io/alternatefutures/swarm-runtime@sha256:<digest>   # first deploy: creates the digest-pinned runtime service, then registers + deploys the bundle
+acc swarms deploy review --service swarm-runtime-review    # later deploys: reuse the existing runtime service
 acc run review --remote --input "Run the deployed definition"
 acc trace <run-id>
 ```
 
 `swarms deploy` compiles a private executable bundle, registers its digest, and
 binds it to a digest-pinned runtime image; bundle contents and bootstrap
-credentials never appear in command output. The identity commands
+credentials never appear in command output. The runtime service is NOT a normal
+docker service: `--image <ref@sha256:…>` creates (or reuses, when the name and
+digest match) a registry row named `swarm-runtime-<swarm>` (override with
+`--service-name`) that only `deploySwarmRuntime` ever deploys; `acc services
+create --kind docker` would deploy it immediately as a plain lease. `--image`
+and `--service` are mutually exclusive. The identity commands
 (`identities`, `cards`, `delegations`, `proofs`) manage agent identities and
 verifiable credentials against the same API.
 
