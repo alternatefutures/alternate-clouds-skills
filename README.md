@@ -16,6 +16,7 @@ the deploy end-to-end.
 |---|---|
 | `alternate-clouds-cli` | Comprehensive `acc` CLI reference. Catch-all for any command/flag question. |
 | `af-setup` | First-time install + `acc login` + project pick. |
+| `alternate-chat` | Send, read, and participate in end-to-end encrypted `acc chat` rooms. |
 | `deploy-static-site` | "Put my HTML / SPA build online." |
 | `deploy-docker-app` | "Deploy my Docker image." |
 | `deploy-from-template` | "Spin up Postgres / Ollama / Redis / ..." |
@@ -113,7 +114,7 @@ Then re-run `install.sh` (or just the agent's skills dir will auto-pick it up if
 ## Repo layout
 
 ```
-alternate-skills/
+alternate-clouds-skills/
 ├── README.md
 ├── LICENSE
 ├── AGENTS.md                # Codex root rules
@@ -130,6 +131,7 @@ alternate-skills/
 └── skills/
     ├── alternate-clouds-cli/SKILL.md
     ├── af-setup/SKILL.md
+    ├── alternate-chat/SKILL.md
     ├── deploy-static-site/SKILL.md
     ├── deploy-docker-app/SKILL.md
     ├── deploy-from-template/SKILL.md

@@ -1,6 +1,6 @@
 {
   "name": "alternate-cloud",
-  "description": "Deploy and manage workloads on Alternate Clouds (Akash + Spheron + Phala TEE) from any AI coding assistant. Bundles the `ac` CLI reference plus task-specific skills for static sites, Docker apps, templates, raw servers, and troubleshooting.",
+  "description": "Deploy and manage workloads on Alternate Clouds (Akash + Spheron + Phala TEE) from any AI coding assistant. Bundles the `acc` CLI reference plus task-specific skills for static sites, Docker apps, templates, raw servers, and troubleshooting.",
   "version": "0.2.0",
   "author": {
     "name": "Alternate Futures",
@@ -8,6 +8,6 @@
   },
   "license": "AGPL-3.0-only",
   "homepage": "https://alternatefutures.ai",
-  "repository": "https://github.com/alternatefutures/alternate-skills",
+  "repository": "https://github.com/alternatefutures/alternate-clouds-skills",
   "keywords": ["cli", "cloud", "deploy", "akash", "spheron", "phala", "tee", "decentralized", "alternate-clouds"]
 }
