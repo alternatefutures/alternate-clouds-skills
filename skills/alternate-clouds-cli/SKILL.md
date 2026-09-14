@@ -366,13 +366,23 @@ acc trace <run-id>
 binds it to a digest-pinned runtime image; bundle contents and bootstrap
 credentials never appear in command output. With NEITHER `--service` nor
 `--image`, the CLI resolves the current released image from the
-sigstore-verified `runtime-image-current` release (`runtime_image_unpinned`
-only when nothing is published). The runtime service is NOT a normal
-docker service: the resolved or explicit `--image <ref@sha256:…>` creates (or
-reuses, when the name and digest match) a registry row named
+sigstore-verified `runtime-image-current` pointer, fetched through the
+platform API's public `GET /swarm/runtime-image/<asset>` route (the
+swarm-runtime repo is private; the API is transport only — issuer, exact
+workflow identity, checksums and image digest are all verified client-side).
+`runtime_image_unpinned` means nothing is published OR a release is recreating
+the pointer at that moment (retry in a minute). The runtime service is NOT a
+normal docker service: the resolved or explicit `--image <ref@sha256:…>`
+creates (or reuses, when the name and digest match) a registry row named
 `swarm-runtime-<swarm>` (override with `--service-name`) that only
 `deploySwarmRuntime` ever deploys; `acc services create --kind docker` would
-deploy it immediately as a plain lease. `--image` and `--service` are mutually
+deploy it immediately as a plain lease. Upgrade UX (2026-09-14): when the
+default `swarm-runtime-<swarm>` name is pinned to an OLDER release's digest,
+deploy does not dead-end — it creates (or reuses) the deterministic sibling
+`swarm-runtime-<swarm>-<12-hex digest prefix>` and prints exactly what it did;
+the old service is left untouched (`acc services delete <id>` removes it).
+`runtime_service_image_mismatch` is raised only for an explicit
+`--service-name` pinned to a different digest. `--image` and `--service` are mutually
 exclusive. The identity commands (`identities`, `cards`, `delegations`,
 `proofs`) manage agent identities and verifiable credentials against the same
 API.
