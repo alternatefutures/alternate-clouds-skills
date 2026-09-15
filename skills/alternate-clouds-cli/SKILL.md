@@ -130,7 +130,7 @@ Shared deploy-side flags (also accepted by `services deploy`):
 | `--spend <mode>` | `payg` \| `budget` \| `stop` |
 | `--budget-total <usd>` / `--budget-monthly <usd>` | Spend caps, enforced server-side |
 | `--stop-hours <n>` / `--stop-days <n>` | Auto-stop after a fixed runtime |
-| `--env KEY=VALUE` | Environment variable (templates list the required ones). Repeatable. |
+| `--env KEY=VALUE` | Environment variable (templates list the required ones; for `--kind docker` and `--kind server` every pair is stored as a secret env var). Repeatable. Builds before 2026-09-15 dropped `--env` silently on docker/server services; verify with `acc services env list <service>`. |
 | `-y, --yes` | Default everything unspecified and skip the final confirm |
 
 `-y` defaults in non-interactive mode:
@@ -361,6 +361,15 @@ acc swarms deploy review --service swarm-runtime-review    # later deploys: reus
 acc run review --remote --input "Run the deployed definition"
 acc trace <run-id>
 ```
+
+`acc trace` (and the other read-only runtime controls: `swarms watch`, state
+history/verify, attest) fails with `control_plane_unavailable: <code> <message>`
+when the control plane cannot be reached (`UNAUTHENTICATED`,
+`SERVICE_UNAVAILABLE`, `NOT_FOUND`) and `control_plane_failed: <code> <message>`
+for anything else; `<code>` is the API's GraphQL error code (for example
+`FORBIDDEN` when the run belongs to another project) and the message is
+one line, secret-free. Earlier builds printed the bare code and discarded the
+cause.
 
 `swarms deploy` compiles a private executable bundle, registers its digest, and
 binds it to a digest-pinned runtime image; bundle contents and bootstrap
