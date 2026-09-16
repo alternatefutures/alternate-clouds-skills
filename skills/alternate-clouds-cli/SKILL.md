@@ -352,12 +352,16 @@ Intended flow once live (from the CLI README; self-serve since 2026-09-14):
 ```bash
 npm install -g @alternatefutures/acc@next   # prerelease only; needs Node.js >= 20.17.0
 acc init my-swarm && cd my-swarm
-acc create agent researcher                       # --model <provider/model>; default openai/gpt-5.6-sol (hosted-routable)
+acc add agent                                     # wizard: name, job, model selector, optional key paste
+acc create agent researcher                       # flags: --model <provider/model>; default openai/gpt-5.6-sol (hosted-routable)
+acc add swarm                                     # wizard: plain-language shape, members
 acc create swarm review --shape sequential --members researcher
 acc run review --input "Summarize this request"           # local run
 acc secrets set OPENAI_API_KEY --stdin --project <id>      # the ONLY secret a user sets
 acc swarms deploy review --yes                             # resolves the released runtime image from the signed runtime-image-current release; the API generates every other project secret on first deploy
 acc swarms deploy review --service swarm-runtime-review    # later deploys: reuse the existing runtime service
+acc swarms room review                                     # passphrase + join command for the swarm's encrypted chat room
+acc chat join chat.staging.alternatefutures.ai             # then: @researcher find …  /  @all summarize …
 acc run review --remote --input "Run the deployed definition"
 acc trace <run-id>
 ```
@@ -410,6 +414,34 @@ reason, e.g. `SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`);
 acc 1.2.0 still uses the synchronous `deploySwarmRuntime` and can see a 524 on
 a fresh project; the server-side deploy continues and `acc swarms status`
 shows the result.
+
+### Wizards and the swarm room (acc ≥ 1.3.0, API 2026-09-16)
+
+`acc add agent [name]` is the step-by-step way to add an agent: name (one
+word, the `@mention`), its job (one sentence, becomes the persona), the model
+as a SELECTOR fed by the platform's curated list (`swarmModels`: GPT-5.6 sol
+default, Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5; never free text),
+then an optional hidden paste of the provider key (`OPENAI_API_KEY` or
+`ANTHROPIC_API_KEY`, stored as a project secret). It prints the equivalent
+flags (`acc create agent <name> --model <id>`) at the end. `acc add swarm
+[name]` asks how the agents work together in plain words (one after another =
+`--shape sequential`, all at once = `parallel` + `--reducer`, with a lead =
+`supervisor` + `--supervisor`, pass it along = `handoff`, repeat until done =
+`loop --max-iterations`, custom = `graph --edges`) and who is on the team.
+Both need a TTY; scripts use `acc create …` with flags. A model outside the
+list fails at deploy with `SWARM_MODEL_UNSUPPORTED` naming the list.
+
+Every deployed swarm has ONE encrypted chat room. `acc swarms room <swarm>`
+prints its six-word passphrase (audited read; this is the only place it is
+shown) and the join command (`acc chat join <relay-host>`, then paste the
+passphrase, or set `AF_CHAT_PASSWORD`). In the room every agent is a member:
+`@<agent> …` runs that agent alone and it answers as itself with a
+`run <id> · cost $…` line; `@all …` runs the whole swarm and the member named
+after the swarm answers; a message with no mention runs nothing. Messages
+posted by agents never trigger runs. The web chat client at the relay URL
+opens the same room with the same passphrase. Discord is a separate,
+optional conversation (the bridge never mirrors the room). `acc swarms
+deploy` ends with a pointer to `acc swarms room`, never the passphrase.
 
 `acc create agent <name> [--model <provider/model>]` (acc ≥ 1.3.0) writes
 `model = "openai/gpt-5.6-sol"` unless `--model` says otherwise (`openai/…` or
