@@ -352,7 +352,7 @@ Intended flow once live (from the CLI README; self-serve since 2026-09-14):
 ```bash
 npm install -g @alternatefutures/acc@next   # prerelease only; needs Node.js >= 20.17.0
 acc init my-swarm && cd my-swarm
-acc create agent researcher
+acc create agent researcher                       # --model <provider/model>; default openai/gpt-5.6-sol (hosted-routable)
 acc create swarm review --shape sequential --members researcher
 acc run review --input "Summarize this request"           # local run
 acc secrets set OPENAI_API_KEY --stdin --project <id>      # the ONLY secret a user sets
@@ -410,6 +410,19 @@ reason, e.g. `SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`);
 acc 1.2.0 still uses the synchronous `deploySwarmRuntime` and can see a 524 on
 a fresh project; the server-side deploy continues and `acc swarms status`
 shows the result.
+
+`acc create agent <name> [--model <provider/model>]` (acc ≥ 1.3.0) writes
+`model = "openai/gpt-5.6-sol"` unless `--model` says otherwise (`openai/…` or
+`anthropic/…`; anything else fails `model_invalid`). Imports (`--from`) keep the
+source's model when it names one and fall back to the same default. Before
+this the default was `af/kimi-k2.7`, which the hosted runtime cannot route: a
+fresh project's first `acc swarms deploy` failed `SWARM_MODEL_UNSUPPORTED`
+until `acc swarms model set` rewrote the project config.
+
+`acc swarms logs` fails with `SWARM_LOGS_UNAVAILABLE` (retryable; the message
+says whether the provider is rate limiting) instead of `Unexpected error.`
+when the provider's log endpoint fails (API 2026-09-16). Never poll it faster
+than once per second.
 
 `acc swarms model set <provider/model>` (2026-09-14) sets the project's hosted
 model server-side — `openai/<model>` or `anthropic/<model>` (requires the
