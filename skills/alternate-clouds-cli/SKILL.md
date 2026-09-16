@@ -396,6 +396,21 @@ exclusive. The identity commands (`identities`, `cards`, `delegations`,
 `proofs`) manage agent identities and verifiable credentials against the same
 API.
 
+Deploy progress and errors (acc ≥ 1.3.0, API 2026-09-16): `swarms deploy` calls
+`startSwarmDeploy`, then polls `swarmDeployProgress` every 2 s and prints each
+phase (`deploy slot claimed` → `checking project secrets and policy` →
+`reserving compute capacity` → `delivering private files to the runtime` →
+`waiting for the runtime to register` → `runtime ready`), then reads
+`swarmDeployment`. No more `GraphQL request failed: 524` on a fresh project's
+first deploy. Errors: `swarm_deploy_failed: <CODE> <message>` (the API's coded
+reason, e.g. `SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`);
+`SWARM_DEPLOY_IN_PROGRESS` when another deploy of the same swarm is running
+(wait, then `acc swarms status <swarm>`); `swarm_deploy_timeout` after 15 min;
+`swarm_deploy_superseded` when a newer deploy of the swarm replaced this one.
+acc 1.2.0 still uses the synchronous `deploySwarmRuntime` and can see a 524 on
+a fresh project; the server-side deploy continues and `acc swarms status`
+shows the result.
+
 `acc swarms model set <provider/model>` (2026-09-14) sets the project's hosted
 model server-side — `openai/<model>` or `anthropic/<model>` (requires the
 matching `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` project secret to exist), or
