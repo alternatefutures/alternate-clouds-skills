@@ -435,13 +435,17 @@ Every deployed swarm has ONE encrypted chat room. `acc swarms room <swarm>`
 prints its six-word passphrase (audited read; this is the only place it is
 shown) and the join command (`acc chat join <relay-host>`, then paste the
 passphrase, or set `AF_CHAT_PASSWORD`). In the room every agent is a member:
-`@<agent> …` runs that agent alone and it answers as itself with a
-`run <id> · cost $…` line; `@all …` runs the whole swarm and the member named
-after the swarm answers; a message with no mention runs nothing. Messages
-posted by agents never trigger runs. The web chat client at the relay URL
-opens the same room with the same passphrase. Discord is a separate,
-optional conversation (the bridge never mirrors the room). `acc swarms
-deploy` ends with a pointer to `acc swarms room`, never the passphrase.
+`@<agent> …` runs that agent alone and it answers as itself; `@all …` runs
+the whole swarm and the member named after the swarm answers; `cost`,
+`@all cost` or `@<swarm> cost` makes that member report the project's spend
+(no run); a message with no mention runs nothing. Replies carry no cost line
+by default. Messages posted by agents never trigger runs. The web chat client
+at the relay URL opens the same room with the same passphrase. The agents'
+room members are driven by a bridge that the platform deploys INSIDE the
+swarm's own lease (since 2026-09-17): the user never creates, tokens or
+configures it, and it stops with the swarm. Discord is a separate, optional
+conversation (the bridge never mirrors the room). `acc swarms deploy` ends
+with a pointer to `acc swarms room`, never the passphrase.
 
 `acc create agent <name> [--model <provider/model>]` (acc ≥ 1.3.0) writes
 `model = "openai/gpt-5.6-sol"` unless `--model` says otherwise (`openai/…` or
