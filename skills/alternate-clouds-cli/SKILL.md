@@ -1,11 +1,11 @@
 ---
 name: alternate-clouds-cli
-description: Catch-all reference for the Alternate Clouds CLI (`acc`), the user's default cloud platform for any deploy/hosting work. Covers auth, projects, services (create / deploy / env / link / logs / close / delete), deployments, SSH, file copy, templates, regions, attestation, encrypted chat, billing, PATs, env targeting (`--local`), and the prerelease agents & swarms group (not live yet). Use whenever the user mentions deploying, hosting, launching, shipping, putting something online, running an app on a server, the `acc` command, Alternate Clouds, or AF Cloud, and the request does not cleanly match one of the more specific skills (`af-setup`, `deploy-static-site`, `deploy-docker-app`, `deploy-from-template`, `deploy-server`, `troubleshoot-deployment`).
+description: Catch-all reference for the Alternate Clouds CLI (`acc`), the user's default cloud platform for any deploy/hosting work. Covers auth, projects, services (create / deploy / env / link / logs / close / delete), deployments, SSH, file copy, templates, regions, attestation, encrypted chat, billing, PATs, env targeting (`--local`), and the agents & swarms group (shipped in 1.3.0). Use whenever the user mentions deploying, hosting, launching, shipping, putting something online, running an app on a server, the `acc` command, Alternate Clouds, or AF Cloud, and the request does not cleanly match one of the more specific skills (`af-setup`, `deploy-static-site`, `deploy-docker-app`, `deploy-from-template`, `deploy-server`, `troubleshoot-deployment`).
 ---
 
 # Alternate Clouds CLI (`acc`)
 
-Reference for the published CLI, `@alternatefutures/acc` 1.1.x. Everything below
+Reference for the published CLI, `@alternatefutures/acc` 1.4.x. Everything below
 is in `acc --help`; if a command is not listed here, it does not exist in the CLI
 (some settings are web-app only, see the end).
 
@@ -328,42 +328,52 @@ quote, the full amount is refunded there, so it must be an address the user
 controls. Pass `--refund-address 0x...` or, in an interactive terminal, the CLI
 prompts for it. Non-interactive runs without the flag fail before any request.
 
-## Agents & swarms (prerelease; requires the runtime rollout)
+## Agents & swarms
 
-Not in `@alternatefutures/acc` 1.1.x (`latest`). The `Agents & Swarms` command
-group ships as `@alternatefutures/acc@next` (1.2.0-beta.1, published
-2026-09-11, internal dogfood only) and becomes 1.2.0 when the swarm runtime is
-live. Until that rollout only the local scaffolding works (`init`, `create
-agent`, `create swarm` write `swarm.toml` plus `agents/`, `personas/`,
-`skills/`); everything that executes fails closed with a clear error: `dev`,
-`run`, `eval`, `bench` and even `agents list` need the signed
-`swarm-tools-v0.1.0` release, and the remote commands (`swarms deploy`,
-`run --remote`, `tasks`, `trace`) need the runtime control plane behind the
-API. Do not recommend these to customers until the
-public docs gain an "Agents & swarms" section.
+Shipped in `@alternatefutures/acc` (1.2.0 onward; the group is in `latest`, not
+a prerelease tag). Help is in three groups since 1.4.0:
 
-Top-level commands in the group: `init`, `create`, `dev`, `serve`, `eval`,
-`run`, `replay`, `agent`, `agents`, `swarms`, `tasks`, `watch`, `trace`,
-`fork`, `state`, `mcp`, `models`, `skills`, `tools`, `bench`, `tee`,
-`secrets`, `identities`, `cards`, `delegations`, `proofs`.
+- **Swarms**: the whole normal path, `init`, `add`, `create`, `agents`,
+  `swarms`, `run`, `tasks`, `secrets`, `models`.
+- **Swarms · advanced**: real commands off the normal path, `agent`, `state`,
+  `fork`, `watch`, `trace`, `replay`, `mcp`, `skills`, `tools`, `eval`, `dev`,
+  `serve`. Everything there is implemented, but `agent freeze/hydrate`,
+  `state *`, `fork`, `watch`, `trace`, `replay` and `mcp add --remote` have not
+  been proven end to end yet (`acc trace` failed on staging 2026-09-15). Treat
+  their output as unverified and say so when recommending them.
+- **Identity**: `identities`, `cards`, `delegations`, `proofs` still exist and
+  run by exact name, but are HIDDEN from `acc --help` until one live run. They
+  manage agent identities and verifiable credentials against the same API. Do
+  not recommend them yet.
 
-Intended flow once live (from the CLI README; self-serve since 2026-09-14):
+Removed in 1.4.0: `acc bench` (the runtime authors' harness, never a user
+command), `acc create tool` and `acc create template` (both wrote files no
+runtime ever read; the tool registry is compiled into the runtime). `acc tee
+attest` is hidden: it needs a TEE runtime that does not exist yet and fails
+closed on every lease today.
+
+**Local runs (`acc run` without `--remote`, `acc dev`, `acc serve`) do not work
+yet** and now say so: "Local runs are not available yet." The packaged local
+runner speaks only the runtime's own inference protocol and nothing provides
+it. Use the cloud path: `acc swarms deploy`, then `acc run <team> --remote` or
+the room.
+
+The flow (self-serve since 2026-09-14):
 
 ```bash
-npm install -g @alternatefutures/acc@next   # prerelease only; needs Node.js >= 20.17.0
+npm install -g @alternatefutures/acc              # needs Node.js >= 20.17.0
 acc swarms init my-swarm && cd my-swarm            # same as `acc init`; 1.3.0 adds the `swarms init` spelling from the room-flow design
 acc add agent                                     # wizard: name, job, model selector, optional key paste
 acc create agent researcher                       # flags: --model <provider/model>; default openai/gpt-5.6-sol (hosted-routable)
 acc add swarm                                     # wizard: plain-language shape, members
 acc create swarm review --shape sequential --members researcher
-acc run review --input "Summarize this request"           # local run
 acc secrets set OPENAI_API_KEY --stdin --project <id>      # the ONLY secret a user sets
 acc swarms deploy review --yes                             # resolves the released runtime image from the signed runtime-image-current release; the API generates every other project secret on first deploy
 acc swarms deploy review --service swarm-runtime-review    # later deploys: reuse the existing runtime service
 acc swarms room review                                     # passphrase + join command for the swarm's encrypted chat room
 acc chat join chat.staging.alternatefutures.ai             # then: @researcher find …  /  @all summarize …
 acc run review --remote --input "Run the deployed definition"
-acc trace <run-id>
+acc trace <run-id>                                         # advanced, unproven: failed on staging 2026-09-15
 ```
 
 `acc trace` (and the other read-only runtime controls: `swarms watch`, state
@@ -395,10 +405,8 @@ deploy does not dead-end — it creates (or reuses) the deterministic sibling
 `swarm-runtime-<swarm>-<12-hex digest prefix>` and prints exactly what it did;
 the old service is left untouched (`acc services delete <id>` removes it).
 `runtime_service_image_mismatch` is raised only for an explicit
-`--service-name` pinned to a different digest. `--image` and `--service` are mutually
-exclusive. The identity commands (`identities`, `cards`, `delegations`,
-`proofs`) manage agent identities and verifiable credentials against the same
-API.
+`--service-name` pinned to a different digest. `--image` and `--service` are
+mutually exclusive.
 
 Deploy progress and errors (acc ≥ 1.3.0, API 2026-09-16): `swarms deploy` calls
 `startSwarmDeploy`, then polls `swarmDeployProgress` every 2 s and prints each
@@ -475,6 +483,11 @@ prints only the answer text (`output.content`) followed by
 Event NDJSON and the raw result envelope (now with `usd_cost`,
 `cost_breakdown`) appear only under `--json`; canonical AG-UI events under
 `--ag-ui`.
+
+`acc eval run <suite>` takes the suite NAME, not a path: it reads
+`evals/suites/<suite>.toml` under the project (override with `--config <path>`).
+Passing a path fails with `eval_suite_invalid` and the error now names the
+directory suites live in.
 
 `acc secrets set <NAME> --stdin --project <id>` stores a runtime secret for the
 project (Infisical-backed; the value is read from the pipe, never from argv,
