@@ -351,7 +351,7 @@ Intended flow once live (from the CLI README; self-serve since 2026-09-14):
 
 ```bash
 npm install -g @alternatefutures/acc@next   # prerelease only; needs Node.js >= 20.17.0
-acc init my-swarm && cd my-swarm
+acc swarms init my-swarm && cd my-swarm            # same as `acc init`; 1.3.0 adds the `swarms init` spelling from the room-flow design
 acc add agent                                     # wizard: name, job, model selector, optional key paste
 acc create agent researcher                       # flags: --model <provider/model>; default openai/gpt-5.6-sol (hosted-routable)
 acc add swarm                                     # wizard: plain-language shape, members
