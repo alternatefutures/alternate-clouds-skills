@@ -367,11 +367,22 @@ runtime ever read; the tool registry is compiled into the runtime). `acc tee
 attest` is hidden: it needs a TEE runtime that does not exist yet and fails
 closed on every lease today.
 
-**Local runs (`acc run` without `--remote`, `acc dev`, `acc serve`) do not work
-yet** and now say so: "Local runs are not available yet." The packaged local
-runner speaks only the runtime's own inference protocol and nothing provides
-it. Use the cloud path: `acc swarms deploy`, then `acc run <team> --remote` or
-the room.
+**Local runs (`acc run` without `--remote`, `acc dev`, `acc serve`) work
+since 1.5.0 and go through the platform**: the local runtime calls the model
+through the platform's inference proxy with an inference-only token this
+machine mints once after `acc login` (kept 0600 in `~/.alternate-futures/`,
+revoked by `acc logout`), so no provider key is needed locally and the usage
+is billed to the organization like a deployed swarm's. Flags on all three:
+`--model <provider/model>` (default: the one model every agent declares;
+`model_ambiguous` otherwise), `--base-url <url>` (any OpenAI-compatible
+server instead of the platform; add `--credential-file <absolute 0600 path>`
+for a bearer, https only), `--fixture` (no model; authoring/tests). `acc
+dev`/`serve` probe the model with a real tool call before serving
+(`model_diagnostics_failed:<code>`); a provider refusal prints its status
+and message. Local runs need an https auth origin (with `--local` set
+`AF_AUTH_API_URL=https://auth.local.alternatefutures.ai`). `af/…` models are
+cloud-only (`model_unsupported_locally`). Versions before 1.5.0 print "Local
+runs are not available yet".
 
 The flow (self-serve since 2026-09-14):
 
@@ -382,8 +393,10 @@ acc add agent                                     # wizard: name, job, model sel
 acc create agent researcher                       # flags: --model <provider/model>; default openai/gpt-5.6-sol (hosted-routable)
 acc add swarm                                     # wizard: plain-language shape, members
 acc create swarm review --shape sequential --members researcher
-acc secrets set OPENAI_API_KEY --stdin --project <id>      # the project's model key for deployed swarms today; org-wide keys: acc orgs providers set (see below)
-acc swarms deploy review --yes                             # resolves the released runtime image from the signed runtime-image-current release; the API generates every other project secret on first deploy
+acc run review --input "Say hello in one sentence."         # 1.5.0: runs on this machine, model through the platform, no key needed
+acc swarms deploy review --yes                             # resolves the released runtime image from the signed runtime-image-current release; the API generates every other project secret on first deploy and mints the runtime's model token (no key needed since API 2026-09-18)
+acc swarms pull review                                     # 1.5.0: record the cloud's newest version in .af/swarms/review.json, report drift
+acc swarms push review                                     # 1.5.0: register this folder's definition on top of the pulled version (swarm_definition_stale ⇒ pull first, or --force)
 acc swarms deploy review --service swarm-runtime-review    # later deploys: reuse the existing runtime service
 acc swarms room review                                     # passphrase + join command for the swarm's encrypted chat room
 acc chat join chat.staging.alternatefutures.ai             # then: @researcher find …  /  @all summarize …
@@ -484,12 +497,28 @@ when the provider's log endpoint fails (API 2026-09-16). Never poll it faster
 than once per second.
 
 `acc swarms model set <provider/model>` (2026-09-14) sets the project's hosted
-model server-side — `openai/<model>` or `anthropic/<model>` (requires the
-matching `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` project secret to exist), or
+model server-side — `openai/<model>` or `anthropic/<model>`, or
 `compat/<model> --base-url https://…` for any OpenAI-compatible endpoint.
-Applied by the next `acc swarms deploy`. Deploy fails pre-spend with
-`SWARM_MODEL_KEY_MISSING` (set the key) or `SWARM_MODEL_UNSUPPORTED` (agents
-disagree on a model or use an unsupported provider).
+Applied by the next `acc swarms deploy`. Since API 2026-09-18 (item C) a
+project WITHOUT its own `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` secret is wired
+to the platform's inference proxy: every deploy mints a service-bound,
+inference-only organization token for the runtime, asks the proxy's verdict
+for the model BEFORE any spend, and revokes the token on stop, close and
+delete. Pre-spend refusals: `SWARM_MODEL_DISABLED` (switched off under Org ›
+Models), `SWARM_INFERENCE_BALANCE_LOW` (wallet), `SWARM_SUBSCRIPTION_INACTIVE`,
+`SWARM_INFERENCE_UNAVAILABLE`, `SWARM_MODEL_UNSUPPORTED` (agents disagree on a
+model or use an unsupported provider). `acc secrets set OPENAI_API_KEY` is now
+the optional project override (direct provider call with that key);
+`SWARM_MODEL_KEY_MISSING` only appears when such a key was deleted after the
+config referenced it. Usage rows carry the runtime service id
+(`GET /billing/credits/org/<org>/usage?serviceId=`).
+
+`--swarm <name>` (1.5.0) on `agent export --remote`, `agent freeze|hydrate`,
+`state read|history|verify`, `fork`, `mcp add --remote`, `models test` and
+`tee attest` selects the deployed swarm when the project runs more than one;
+without it the API resolves the single live runtime (stale rows of stopped
+swarms no longer cause `CONFLICT`; when two are live the CONFLICT message
+names them and says `--swarm`).
 
 `acc run <swarm> --remote` (2026-09-14 output contract): the DEFAULT mode
 prints only the answer text (`output.content`) followed by
