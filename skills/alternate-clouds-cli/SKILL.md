@@ -90,7 +90,7 @@ Operate on the active project. Override with `-p <id-or-name>`:
 ```bash
 acc services list
 acc services -p my-project list
-acc services info [id]
+acc services info [id]              # a swarm service also shows Flavor `swarm`, its team (Swarm row) and Spend (compute + inference)
 acc services logs [id] --tail 100   # snapshot of recent lines; no follow/stream mode
 acc services close [id]             # stop the active deployment (stops billing, keeps the service)
 acc services delete [id]            # delete the service (closes the deployment first)
@@ -306,6 +306,7 @@ acc regions [--provider akash|phala] [--gpu h100|h200|a100|rtx4090]   # availabi
 acc templates list [--category AI_ML|WEB_SERVER|GAME_SERVER|DATABASE|DEVTOOLS|CUSTOM]
 acc templates info <templateId>        # resources, ports, required env vars
 acc billing balance                    # credit wallet of the active organization
+acc billing usage [--service <id>] [--type ai_inference|akash_compute|phala_tee|spheron_vm] [--days 30] [--org <idOrSlug>] [--json]   # what the org was charged (acc >= 1.6.0); --service = one platform service's rows (a swarm's inference + compute)
 acc billing topup --crypto --amount 25 \
     [--chain base|ethereum|arbitrum|optimism|polygon] \  # default: base
     [--token USDC|USDT|DAI] \                            # default: USDC
@@ -423,18 +424,27 @@ swarm-runtime repo is private; the API is transport only — issuer, exact
 workflow identity, checksums and image digest are all verified client-side).
 `runtime_image_unpinned` means nothing is published OR a release is recreating
 the pointer at that moment (retry in a minute). The runtime service is NOT a
-normal docker service: the resolved or explicit `--image <ref@sha256:…>`
-creates (or reuses, when the name and digest match) a registry row named
-`swarm-runtime-<swarm>` (override with `--service-name`) that only
-`deploySwarmRuntime` ever deploys; `acc services create --kind docker` would
-deploy it immediately as a plain lease. Upgrade UX (2026-09-14): when the
-default `swarm-runtime-<swarm>` name is pinned to an OLDER release's digest,
-deploy does not dead-end — it creates (or reuses) the deterministic sibling
-`swarm-runtime-<swarm>-<12-hex digest prefix>` and prints exactly what it did;
-the old service is left untouched (`acc services delete <id>` removes it).
-`runtime_service_image_mismatch` is raised only for an explicit
-`--service-name` pinned to a different digest. `--image` and `--service` are
-mutually exclusive.
+normal docker service. **Since acc 1.6.0 / API 2026-09-18 (item D) a swarm IS a
+service: one service per team, named after the team, with service flavor
+`swarm`.** `acc swarms deploy <team>` creates (or reuses, when the digest
+matches) the registry row named `<team>` (override with `--service-name`);
+only `deploySwarmRuntime` ever deploys it, and the API refuses the generic
+deploy for flavor `swarm` with `SWARM_SERVICE_DEPLOYS_VIA_SWARM` (`acc services
+deploy`, the web Deploy button). In the web app that service opens with the
+tabs Definition (version registry + deployed binding), Room, Agents, Runs, a
+Spend card (compute + inference for that service) and the usual Deployments /
+Logs / Config; `acc services info <team>` shows Flavor, Swarm and Spend. Upgrade
+UX: when the team's service is pinned to an OLDER release's digest, deploy
+re-pins it in place (same service, same room, same runs and spend) and prints
+what it did. Teams deployed before 1.6.0 own a docker-flavor
+`swarm-runtime-<team>` row (or its `swarm-runtime-<team>-<12-hex>` sibling):
+those are reused while their digest matches; on a newer release the deploy
+creates the properly named `<team>` service and leaves the old row untouched
+(`acc services delete <id>` removes it). The web app recognises the old rows
+as swarms too (it resolves the swarm from the deployment binding).
+`runtime_service_image_mismatch` is raised for an explicit `--service-name`
+pinned to a different digest, or when a non-swarm service already uses the
+team's name. `--image` and `--service` are mutually exclusive.
 
 Deploy progress and errors (acc ≥ 1.3.0, API 2026-09-16): `swarms deploy` calls
 `startSwarmDeploy`, then polls `swarmDeployProgress` every 2 s and prints each
@@ -445,7 +455,9 @@ phase (`deploy slot claimed` → `checking project secrets and policy` →
 first deploy. Errors: `swarm_deploy_failed: <CODE> <message>` (the API's coded
 reason, e.g. `SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`);
 `SWARM_DEPLOY_IN_PROGRESS` when another deploy of the same swarm is running
-(wait, then `acc swarms status <swarm>`); `swarm_deploy_timeout` after 15 min;
+(wait, then `acc swarms status <swarm>`; since 1.6.0 status also prints
+`spend: $… (compute $… + inference $…, N requests)` for the team's service, and
+`--json` adds a `spend` object); `swarm_deploy_timeout` after 15 min;
 `swarm_deploy_superseded` when a newer deploy of the swarm replaced this one.
 acc 1.2.0 still uses the synchronous `deploySwarmRuntime` and can see a 524 on
 a fresh project; the server-side deploy continues and `acc swarms status`
