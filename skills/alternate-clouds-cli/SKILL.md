@@ -314,7 +314,22 @@ acc billing topup --crypto --amount 25 \
 acc pat list
 acc pat create --name "CI token"       # token shown once
 acc pat delete <tokenId>
+acc orgs list                                        # organizations you belong to (acc >= 1.4.0)
+acc orgs providers list [--org <idOrSlug>]           # which providers have your own key, how each is billed
+pbpaste | tr -d '[:space:]' | acc orgs providers set openai --stdin [--org <idOrSlug>]   # bring your own key: verified, stored encrypted, never printed
+acc orgs providers unset openai [--org <idOrSlug>]   # back to the platform key
+acc models list [--org <idOrSlug>] [--all] [--json]  # the model catalog as the org sees it: on/off, list price per 1M tokens, billed via wallet or your key
 ```
+
+`orgs providers set` needs the owner or admin role. Providers: `openai`,
+`anthropic`, `groq`, `together`, `deepseek`, `openrouter`, `xai`. With your key
+on, every request the organization makes through the platform for that
+provider (dashboard assistant, `/v1` API tokens; swarm agents once they route
+through the platform) goes to the provider at cost: the usage row shows $0 and
+the wallet is untouched. Owners and admins switch individual models on or off
+under Org › Models in the web app; a switched-off model answers
+`model_disabled` (HTTP 403) everywhere for that organization, and `acc models
+list` hides it unless `--all`.
 
 `billing topup` is crypto-only (card top-ups happen in the web app) and needs
 the owner or admin role. It prints a stablecoin deposit address (and a terminal
@@ -367,7 +382,7 @@ acc add agent                                     # wizard: name, job, model sel
 acc create agent researcher                       # flags: --model <provider/model>; default openai/gpt-5.6-sol (hosted-routable)
 acc add swarm                                     # wizard: plain-language shape, members
 acc create swarm review --shape sequential --members researcher
-acc secrets set OPENAI_API_KEY --stdin --project <id>      # the ONLY secret a user sets
+acc secrets set OPENAI_API_KEY --stdin --project <id>      # the project's model key for deployed swarms today; org-wide keys: acc orgs providers set (see below)
 acc swarms deploy review --yes                             # resolves the released runtime image from the signed runtime-image-current release; the API generates every other project secret on first deploy
 acc swarms deploy review --service swarm-runtime-review    # later deploys: reuse the existing runtime service
 acc swarms room review                                     # passphrase + join command for the swarm's encrypted chat room
