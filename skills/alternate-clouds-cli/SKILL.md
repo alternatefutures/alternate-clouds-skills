@@ -400,6 +400,7 @@ acc swarms pull review                                     # 1.5.0: record the c
 acc swarms push review                                     # 1.5.0: register this folder's definition on top of the pulled version (swarm_definition_stale ⇒ pull first, or --force)
 acc swarms deploy review --service swarm-runtime-review    # later deploys: reuse the existing runtime service
 acc swarms room review                                     # passphrase + join command for the swarm's encrypted chat room
+pbpaste | tr -d '[:space:]' | acc swarms discord connect review --channel <channel id> --stdin   # 1.8.0: the team answers in that Discord channel; redeploy to apply
 acc chat join chat.staging.alternatefutures.ai             # then: @researcher find …  /  @all summarize …
 acc run review --remote --input "Run the deployed definition"
 acc trace <run-id>                                         # advanced, unproven: failed on staging 2026-09-15
@@ -505,6 +506,35 @@ swarm's own lease (since 2026-09-17): the user never creates, tokens or
 configures it, and it stops with the swarm. Discord is a separate, optional
 conversation (the bridge never mirrors the room). `acc swarms deploy` ends
 with a pointer to `acc swarms room`, never the passphrase.
+
+### Discord (acc ≥ 1.8.0, API 2026-09-20, E-MVP M4)
+
+`acc swarms discord connect <team> --channel <id> [--agent <name> | --swarm]`
+lets the team answer in a Discord channel. The bot token is asked ONCE with a
+hidden prompt, or read from a pipe with `--stdin`
+(`pbpaste | tr -d '[:space:]' | acc swarms discord connect duo --channel <id> --stdin`);
+it is never on argv, never echoed, never in `--json`, and the platform never
+returns it. The platform verifies the token with Discord (bot accounts only),
+checks the bot can see the channel (`swarm_discord_channel_unreachable` =
+invite the bot to that server first), stores the token as a project secret
+and the channel map next to it. `--channel` takes the NUMERIC id (Developer
+Mode → right-click the channel → Copy Channel ID); without `--agent` the whole
+team answers (`--swarm` says so explicitly); `--agent` must name an agent of
+the newest registered definition (`swarm_agent_unknown` lists them). A second
+channel needs no token (`connect` skips the prompt when one is stored; `--stdin`
+replaces it). `acc swarms discord disconnect <team> [--channel <id>]` removes
+one channel or the whole connection including the token; `acc swarms discord
+status <team>` shows the bot, the channels and whether a redeploy is needed.
+**Redeploy to apply**: the channel map rides in the team's bridge at deploy
+time, so every command ends with `Redeploy to apply: acc swarms deploy <team>
+--yes` when a running deployment carries a different map (`Applies on the next
+deploy.` otherwise). The bridge fetches the token at boot with its scoped
+credential; the token never enters the deployment manifest. Discord setup
+(user, ~2 min): discord.com/developers → New Application → Bot → Reset Token
+(copy) → enable the Message Content intent → OAuth2 URL Generator: scope `bot`,
+permissions Send Messages + Read Message History → open the URL, pick the
+server. The web app has the same flow on the swarm service's Room tab
+("Discord" card).
 
 `acc create agent <name> [--model <provider/model>]` (acc ≥ 1.3.0) writes
 `model = "openai/gpt-5.6-sol"` unless `--model` says otherwise (`openai/…` or
