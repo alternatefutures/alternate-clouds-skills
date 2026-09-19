@@ -453,7 +453,12 @@ phase (`deploy slot claimed` → `checking project secrets and policy` →
 `waiting for the runtime to register` → `runtime ready`), then reads
 `swarmDeployment`. No more `GraphQL request failed: 524` on a fresh project's
 first deploy. Errors: `swarm_deploy_failed: <CODE> <message>` (the API's coded
-reason, e.g. `SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`);
+reason, e.g. `SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`; since 1.7.1
+`SWARM_RUNTIME_CONTROL_UNREACHABLE` and `SWARM_RUNTIME_PROVIDER_UNSUPPORTED`
+add that the lease was already closed and the same deploy can be run again to
+bid anew — the winning provider kept the swarm control port closed or is not an
+allowed control host; the API surfaces these codes instead of
+`INTERNAL_SERVER_ERROR` once its 2026-09-19 fix is deployed);
 `SWARM_DEPLOY_IN_PROGRESS` when another deploy of the same swarm is running
 (wait, then `acc swarms status <swarm>`; since 1.6.0 status also prints
 `spend: $… (compute $… + inference $…, N requests)` for the team's service, and
