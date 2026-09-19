@@ -452,17 +452,23 @@ phase (`deploy slot claimed` → `checking project secrets and policy` →
 `reserving compute capacity` → `delivering private files to the runtime` →
 `waiting for the runtime to register` → `runtime ready`), then reads
 `swarmDeployment`. No more `GraphQL request failed: 524` on a fresh project's
-first deploy. Errors: `swarm_deploy_failed: <CODE> <message>` (the API's coded
-reason, e.g. `SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`; since 1.7.1
+first deploy. Since the API's 2026-09-19 change (E-MVP M1) a provider that wins
+the bid but keeps the swarm control port closed no longer ends the deploy: the
+platform closes that lease and bids once more without that provider, under the
+same deploy, and the CLI prints `provider kept the control port closed; lease
+closed, bidding again without it` followed by `reserving compute capacity`
+again (one retry, never more; phases the CLI does not know print as-is). Errors:
+`swarm_deploy_failed: <CODE> <message>` (the API's coded reason, e.g.
+`SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`; since 1.7.1
 `SWARM_RUNTIME_CONTROL_UNREACHABLE` and `SWARM_RUNTIME_PROVIDER_UNSUPPORTED`
 add that the lease was already closed and the same deploy can be run again to
 bid anew — the winning provider kept the swarm control port closed or is not an
-allowed control host; the API surfaces these codes instead of
-`INTERNAL_SERVER_ERROR` once its 2026-09-19 fix is deployed);
+allowed control host; with M1 the first code means both attempts, or the one
+attempt whose lease could not be closed, hit a closed port);
 `SWARM_DEPLOY_IN_PROGRESS` when another deploy of the same swarm is running
 (wait, then `acc swarms status <swarm>`; since 1.6.0 status also prints
 `spend: $… (compute $… + inference $…, N requests)` for the team's service, and
-`--json` adds a `spend` object); `swarm_deploy_timeout` after 15 min;
+`--json` adds a `spend` object); `swarm_deploy_timeout` after 30 min (two reservations fit);
 `swarm_deploy_superseded` when a newer deploy of the swarm replaced this one.
 acc 1.2.0 still uses the synchronous `deploySwarmRuntime` and can see a 524 on
 a fresh project; the server-side deploy continues and `acc swarms status`
