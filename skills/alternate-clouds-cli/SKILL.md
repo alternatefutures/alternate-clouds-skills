@@ -459,7 +459,7 @@ same deploy, and the CLI prints `provider kept the control port closed; lease
 closed, bidding again without it` followed by `reserving compute capacity`
 again (one retry, never more; phases the CLI does not know print as-is). Errors:
 `swarm_deploy_failed: <CODE> <message>` (the API's coded reason, e.g.
-`SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`; since 1.7.1
+`SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`; since 1.7.2
 `SWARM_RUNTIME_CONTROL_UNREACHABLE` and `SWARM_RUNTIME_PROVIDER_UNSUPPORTED`
 add that the lease was already closed and the same deploy can be run again to
 bid anew — the winning provider kept the swarm control port closed or is not an
