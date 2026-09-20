@@ -434,7 +434,12 @@ deploy for flavor `swarm` with `SWARM_SERVICE_DEPLOYS_VIA_SWARM` (`acc services
 deploy`, the web Deploy button). In the web app that service opens with the
 tabs Definition (version registry + deployed binding), Room, Agents, Runs, a
 Spend card (compute + inference for that service) and the usual Deployments /
-Logs / Config; `acc services info <team>` shows Flavor, Swarm and Spend. Upgrade
+Logs / Config; `acc services info <team>` shows Flavor, Swarm and Spend. Since
+API 2026-09-20 the spend line is USD with 4 decimals (`spend: $1.5022 (compute
+$1.5000 + inference $0.0022, 11 requests)`; `--json` adds `compute_usd`,
+`inference_usd`, `total_usd` next to the cent fields): inference is billed in
+fractions of a cent per request, and the cent fields read 0 below half a cent
+(the M5 desk swarm showed `inference $0.00, 11 requests` before). Upgrade
 UX: when the team's service is pinned to an OLDER release's digest, deploy
 re-pins it in place (same service, same room, same runs and spend) and prints
 what it did. Teams deployed before 1.6.0 own a docker-flavor
