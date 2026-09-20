@@ -400,7 +400,7 @@ acc swarms pull review                                     # 1.5.0: record the c
 acc swarms push review                                     # 1.5.0: register this folder's definition on top of the pulled version (swarm_definition_stale ⇒ pull first, or --force)
 acc swarms deploy review --service swarm-runtime-review    # later deploys: reuse the existing runtime service
 acc swarms room review                                     # passphrase + join command for the swarm's encrypted chat room
-pbpaste | tr -d '[:space:]' | acc swarms discord connect review --channel <channel id> --stdin   # 1.8.0: the team answers in that Discord channel; redeploy to apply
+pbpaste | tr -d '[:space:]' | acc swarms discord connect review --channel <channel id> --stdin   # 1.8.0: the team answers in that Discord channel; stop + deploy to apply (a deploy alone re-uses the running deployment)
 acc chat join chat.staging.alternatefutures.ai             # then: @researcher find …  /  @all summarize …
 acc run review --remote --input "Run the deployed definition"
 acc trace <run-id>                                         # advanced, unproven: failed on staging 2026-09-15
@@ -453,7 +453,13 @@ phase (`deploy slot claimed` → `checking project secrets and policy` →
 `reserving compute capacity` → `delivering private files to the runtime` →
 `waiting for the runtime to register` → `runtime ready`), then reads
 `swarmDeployment`. No more `GraphQL request failed: 524` on a fresh project's
-first deploy. Since the API's 2026-09-19 change (E-MVP M1) a provider that wins
+first deploy. A deploy of the version and runtime image that are ALREADY live
+is replayed by the API (nothing is rebuilt) and since 1.8.0 prints `Nothing
+changed: version <n> on this runtime image is already live (deployment <id>)`
+plus the hint instead of `runtime ready`: project changes that ride only in a
+rebuilt lease (the model set with `acc swarms model set`, the Discord channel
+map) apply only after `acc swarms stop <team>`, then `acc swarms deploy <team>
+--yes`. Since the API's 2026-09-19 change (E-MVP M1) a provider that wins
 the bid but keeps the swarm control port closed no longer ends the deploy: the
 platform closes that lease and bids once more without that provider, under the
 same deploy, and the CLI prints `provider kept the control port closed; lease
@@ -488,7 +494,11 @@ flags (`acc create agent <name> --model <id>`) at the end. `acc add swarm
 `--shape sequential`, all at once = `parallel` + `--reducer`, with a lead =
 `supervisor` + `--supervisor`, pass it along = `handoff`, repeat until done =
 `loop --max-iterations`, custom = `graph --edges`) and who is on the team.
-Both need a TTY; scripts use `acc create …` with flags. A model outside the
+For `parallel` / `supervisor` the merger / lead is asked AFTER the team and is
+never a member: agents outside the team are offered first, otherwise the team
+itself and the pick leaves it (the compiler refuses a reducer or supervisor
+that is also a member; before 1.8.0 the wizard could write a team that failed
+to compile). Both need a TTY; scripts use `acc create …` with flags. A model outside the
 list fails at deploy with `SWARM_MODEL_UNSUPPORTED` naming the list.
 
 Every deployed swarm has ONE encrypted chat room. `acc swarms room <swarm>`
@@ -525,10 +535,12 @@ channel needs no token (`connect` skips the prompt when one is stored; `--stdin`
 replaces it). `acc swarms discord disconnect <team> [--channel <id>]` removes
 one channel or the whole connection including the token; `acc swarms discord
 status <team>` shows the bot, the channels and whether a redeploy is needed.
-**Redeploy to apply**: the channel map rides in the team's bridge at deploy
-time, so every command ends with `Redeploy to apply: acc swarms deploy <team>
---yes` when a running deployment carries a different map (`Applies on the next
-deploy.` otherwise). The bridge fetches the token at boot with its scoped
+**Stop and deploy to apply**: the channel map rides in the team's bridge when
+the lease is BUILT, so every command ends with `Stop and deploy to apply: acc
+swarms stop <team>, then acc swarms deploy <team> --yes` when a running
+deployment carries a different map (a deploy alone is replayed by the API and
+re-uses the running lease; `Applies on the next deploy.` when nothing runs or
+the lease already carries the map). The bridge fetches the token at boot with its scoped
 credential; the token never enters the deployment manifest. Discord setup
 (user, ~2 min): discord.com/developers → New Application → Bot → Reset Token
 (copy) → enable the Message Content intent → OAuth2 URL Generator: scope `bot`,
@@ -552,7 +564,9 @@ than once per second.
 `acc swarms model set <provider/model>` (2026-09-14) sets the project's hosted
 model server-side — `openai/<model>` or `anthropic/<model>`, or
 `compat/<model> --base-url https://…` for any OpenAI-compatible endpoint.
-Applied by the next `acc swarms deploy`. Since API 2026-09-18 (item C) a
+Applied by the next REBUILT deployment: `acc swarms stop <team>`, then `acc
+swarms deploy <team> --yes` (the success line says so since 1.8.0; a deploy of
+the live version and image is replayed and changes nothing, M5 finding). Since API 2026-09-18 (item C) a
 project WITHOUT its own `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` secret is wired
 to the platform's inference proxy: every deploy mints a service-bound,
 inference-only organization token for the runtime, asks the proxy's verdict
