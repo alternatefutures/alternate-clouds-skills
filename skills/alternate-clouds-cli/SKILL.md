@@ -302,11 +302,11 @@ The relay is blind (ciphertext only); the Ed25519 **fingerprint**, not the displ
 ## Regions, templates, billing, PATs
 
 ```bash
-acc regions [--provider akash|phala] [--gpu h100|h200|a100|rtx4090]   # availability + pricing; --provider values are the platform's network ids
+acc regions [--provider general|confidential] [--gpu h100|h200|a100|rtx4090]   # availability + pricing; --provider is the compute tier: general (default) or confidential (TEE, single-region)
 acc templates list [--category AI_ML|WEB_SERVER|GAME_SERVER|DATABASE|DEVTOOLS|CUSTOM]
 acc templates info <templateId>        # resources, ports, required env vars
 acc billing balance                    # credit wallet of the active organization
-acc billing usage [--service <id>] [--type ai_inference|akash_compute|phala_tee|spheron_vm] [--days 30] [--org <idOrSlug>] [--json]   # what the org was charged (acc >= 1.6.0); --service = one platform service's rows (a swarm's inference + compute)
+acc billing usage [--service <id>] [--type <serviceType>] [--days 30] [--org <idOrSlug>] [--json]   # what the org was charged (acc >= 1.6.0); --type = one value from the output's Type column (e.g. ai_inference); --service = one platform service's rows (a swarm's inference + compute)
 acc billing topup --crypto --amount 25 \
     [--chain base|ethereum|arbitrum|optimism|polygon] \  # default: base
     [--token USDC|USDT|DAI] \                            # default: USDC
@@ -550,7 +550,7 @@ credential; the token never enters the deployment manifest. Discord setup
 (user, ~2 min): discord.com/developers → New Application → Bot → Reset Token
 (copy) → enable the Message Content intent → OAuth2 URL Generator: scope `bot`,
 permissions Send Messages + Read Message History → open the URL, pick the
-server. The web app has the same flow on the swarm service's Room tab
+server. The web app has the same flow on the swarm service's Chat tab
 ("Discord" card).
 
 `acc create agent <name> [--model <provider/model>]` (acc ≥ 1.3.0) writes
