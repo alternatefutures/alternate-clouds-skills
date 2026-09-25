@@ -462,9 +462,8 @@ first deploy. A deploy of the version and runtime image that are ALREADY live
 is replayed by the API (nothing is rebuilt) and since 1.8.0 prints `Nothing
 changed: version <n> on this runtime image is already live (deployment <id>)`
 plus the hint instead of `runtime ready`: project changes that ride only in a
-rebuilt lease (the model set with `acc swarms model set`, the Discord channel
-map) apply only after `acc swarms stop <team>`, then `acc swarms deploy <team>
---yes`. Since the API's 2026-09-19 change (E-MVP M1) a provider that wins
+rebuilt lease (the Discord channel map, a model changed on the agents) apply
+only after `acc swarms stop <team>`, then `acc swarms deploy <team> --yes`. Since the API's 2026-09-19 change (E-MVP M1) a provider that wins
 the bid but keeps the swarm control port closed no longer ends the deploy: the
 platform closes that lease and bids once more without that provider, under the
 same deploy, and the CLI prints `provider kept the control port closed; lease
@@ -566,12 +565,23 @@ says whether the provider is rate limiting) instead of `Unexpected error.`
 when the provider's log endpoint fails (API 2026-09-16). Never poll it faster
 than once per second.
 
-`acc swarms model set <provider/model>` (2026-09-14) sets the project's hosted
-model server-side — `openai/<model>` or `anthropic/<model>`, or
-`compat/<model> --base-url https://…` for any OpenAI-compatible endpoint.
-Applied by the next REBUILT deployment: `acc swarms stop <team>`, then `acc
-swarms deploy <team> --yes` (the success line says so since 1.8.0; a deploy of
-the live version and image is replayed and changes nothing, M5 finding). Since API 2026-09-18 (item C) a
+The model a deployed team runs is the one its agents declare (`model = "…"`
+in `agents/<name>.toml`, or Source › Agents in the web app): since API
+2026-09-26 every deploy re-renders the project's hosted model config from it
+("bundle wins"), and a bundle whose agents declare a model the hosted runtime
+cannot route (the pre-1.3.0 default `af/kimi-k2.7`) fails pre-spend with
+`SWARM_MODEL_UNSUPPORTED`, naming the declared model and the one the config
+runs, instead of silently running the configured one. To change the model:
+change it on every agent, then `acc swarms stop <team>` and `acc swarms deploy
+<team> --yes` (a deploy of the live version and image is replayed and changes
+nothing, M5 finding). `acc swarms model set <provider/model>` (2026-09-14)
+still writes the config server-side: its lasting use is a self-hosted
+OpenAI-compatible endpoint, `compat/<model> --base-url https://…`, which the
+agents then declare as `compat/<model>` (a deploy keeps a config that names
+the declared model); a listed `openai/<model>` or `anthropic/<model>` set this
+way reaches the runtime only when a running deployment restarts and is
+replaced by the agents' model on the next deploy (the success line says so).
+Since API 2026-09-18 (item C) a
 project WITHOUT its own `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` secret is wired
 to the platform's inference proxy: every deploy mints a service-bound,
 inference-only organization token for the runtime, asks the proxy's verdict
