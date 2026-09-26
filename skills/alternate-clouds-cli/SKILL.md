@@ -470,7 +470,7 @@ same deploy, and the CLI prints `provider kept the control port closed; lease
 closed, bidding again without it` followed by `reserving compute capacity`
 again (one retry, never more; phases the CLI does not know print as-is). Errors:
 `swarm_deploy_failed: <CODE> <message>` (the API's coded reason, e.g.
-`SWARM_MODEL_KEY_INVALID`, `SWARM_RUNTIME_NOT_READY`; since 1.7.2
+`SWARM_MODEL_UNSUPPORTED`, `SWARM_RUNTIME_NOT_READY`; since 1.7.2
 `SWARM_RUNTIME_CONTROL_UNREACHABLE` and `SWARM_RUNTIME_PROVIDER_UNSUPPORTED`
 add that the lease was already closed and the same deploy can be run again to
 bid anew — the winning provider kept the swarm control port closed or is not an
@@ -575,25 +575,25 @@ runs, instead of silently running the configured one. To change the model:
 change it on every agent, then `acc swarms stop <team>` and `acc swarms deploy
 <team> --yes` (a deploy of the live version and image is replayed and changes
 nothing, M5 finding). `acc swarms model set <provider/model>` (2026-09-14)
-still writes the config server-side: its lasting use is a self-hosted
-OpenAI-compatible endpoint, `compat/<model> --base-url https://…`, which the
-agents then declare as `compat/<model>` (a deploy keeps a config that names
-the declared model); a listed `openai/<model>` or `anthropic/<model>` set this
-way reaches the runtime only when a running deployment restarts and is
-replaced by the agents' model on the next deploy (the success line says so).
-Since API 2026-09-18 (item C) a
-project WITHOUT its own `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` secret is wired
-to the platform's inference proxy: every deploy mints a service-bound,
+still writes the config server-side, always through the platform: a listed
+`openai/<model>` or `anthropic/<model>` set this way reaches the runtime only
+when a running deployment restarts and is replaced by the agents' model on the
+next deploy (the success line says so); `compat/<model> --base-url` (a
+self-hosted endpoint) was removed 2026-09-26 (the API answers
+`SWARM_MODEL_UNSUPPORTED`). Since API 2026-09-18 (item C) every project is
+wired to the platform's inference proxy: every deploy mints a service-bound,
 inference-only organization token for the runtime, asks the proxy's verdict
 for the model BEFORE any spend, and revokes the token on stop, close and
 delete. Pre-spend refusals: `SWARM_MODEL_DISABLED` (switched off under Org ›
 Models), `SWARM_INFERENCE_BALANCE_LOW` (wallet), `SWARM_SUBSCRIPTION_INACTIVE`,
 `SWARM_INFERENCE_UNAVAILABLE`, `SWARM_MODEL_UNSUPPORTED` (agents disagree on a
-model or use an unsupported provider). `acc secrets set OPENAI_API_KEY` is now
-the optional project override (direct provider call with that key);
-`SWARM_MODEL_KEY_MISSING` only appears when such a key was deleted after the
-config referenced it. Usage rows carry the runtime service id
-(`GET /billing/credits/org/<org>/usage?serviceId=`).
+model, use an unsupported provider, or name a self-hosted `compat/<model>`).
+Since API 2026-09-26 this is the ONLY path: `acc secrets set OPENAI_API_KEY` /
+`ANTHROPIC_API_KEY` is refused (`SWARM_MODEL_KEY_NOT_ALLOWED`), a deployed
+swarm never calls a provider directly, and bring-your-own-key is
+`acc orgs providers set <provider> --stdin` (Org › Models, inside the proxy,
+so usage rows, toggles and limits keep working). Usage rows carry the runtime
+service id (`GET /billing/credits/org/<org>/usage?serviceId=`).
 
 `--swarm <name>` (1.5.0) on `agent export --remote`, `agent freeze|hydrate`,
 `state read|history|verify`, `fork`, `mcp add --remote`, `models test` and
@@ -617,7 +617,9 @@ directory suites live in.
 
 `acc secrets set <NAME> --stdin --project <id>` stores a runtime secret for the
 project (Infisical-backed; the value is read from the pipe, never from argv,
-and never echoed). Byte handling: a single-line value loses exactly one
+and never echoed). `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are refused since
+API 2026-09-26 (`SWARM_MODEL_KEY_NOT_ALLOWED`): provider keys belong to
+`acc orgs providers set`. Byte handling: a single-line value loses exactly one
 trailing newline (the one `echo` adds); a multi-line document is stored
 byte-exact, final newline included. Multi-line runtime files such as the state
 keyring depend on that final newline (fixed 2026-09-13; earlier builds shortened
