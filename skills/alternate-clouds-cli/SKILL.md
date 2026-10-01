@@ -90,7 +90,7 @@ Operate on the active project. Override with `-p <id-or-name>`:
 ```bash
 acc services list
 acc services -p my-project list
-acc services info [id]              # a swarm service also shows Flavor `swarm`, its team (Swarm row) and Spend (compute + inference)
+acc services info [id]              # includes Hostnames (the public names the slug answers on); a swarm service also shows Flavor `swarm`, its team (Swarm row) and Spend (compute + inference)
 acc services logs [id] --tail 100   # snapshot of recent lines; no follow/stream mode
 acc services close [id]             # stop the active deployment (stops billing, keeps the service)
 acc services delete [id]            # delete the service (closes the deployment first)
@@ -145,9 +145,11 @@ Required template env vars missing under `-y` produce a clear error listing them
 
 ```bash
 acc services deploy [id] [same flags as create]
+acc services deploy <id> --image ghcr.io/you/app@sha256:<digest>   # Docker services: ship a new image
+acc --debug services deploy <id>                                   # also prints the manifest before it is submitted
 ```
 
-Same prompt chain as create; closes any active deployment first (auto-confirms under `-y`). A redeploy is a new deployment; the URL does not change. On a region soft-fail it prints two or three alternative regions with the exact retry command.
+Same prompt chain as create (auto-confirms under `-y`). A redeploy is a new deployment; the URL does not change. Before anything is replaced, the CLI asks the API to build and validate the new manifest; a rejected manifest stops the command with the reasons and leaves the running deployment untouched. Standard-compute redeploys are then replaced by the server, which closes the old deployment only after that validation; confidential and GPU redeploys still close the current deployment first. `--image <ref>` (Docker services only) sets the image on the service before deploying, so a service pinned to a digest can ship new code without being recreated; it is refused for services that take their image from a template or a build. On a region soft-fail it prints two or three alternative regions with the exact retry command.
 
 ### `services env`: environment variables
 
