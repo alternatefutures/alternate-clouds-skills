@@ -637,9 +637,11 @@ acc services create --kind docker --name web --image nginx:1.27-alpine --port 80
 acc services create --kind docker --name infer --image my/llm:v1 --port 8080 \
   --gpu --gpu-model h100 --gpu-count 1 --region us-east -y
 
-# Confidential (TEE) deploy from a template, with a budget cap
+# Confidential (TEE) deploy from a template, with a budget cap. The platform
+# injects the org id and delivers the inference credential itself (no key flags);
+# pick the model with --env MODEL_NAME=<registry id> (Org › Models decides access).
 acc services create --kind template --template alternate-agent \
-  --confidential --name secure-agent --env AF_API_KEY=… --env AF_ORG_ID=… --budget-monthly 20 -y
+  --confidential --name secure-agent --env MODEL_NAME=gpt-5.4-mini --budget-monthly 20 -y
 
 # Empty Ubuntu machine for SSH
 acc services create --kind server --name dev-box --os ubuntu:24.04 -y
