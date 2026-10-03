@@ -33,7 +33,7 @@ acc templates list                       # browse by category
 acc templates list --category AI_ML      # AI_ML | WEB_SERVER | GAME_SERVER | DATABASE | DEVTOOLS | CUSTOM
 ```
 
-Pick the template id (for example `postgres`, `redis`, `ollama-gpu`, `comfyui`, `alternate-agent`, `minecraft-server`).
+Pick the template id (for example `postgres`, `redis`, `ollama-gpu`, `comfyui`, `minecraft-server`). An AI agent is not a template: see the "An agent on its own" recipe in the `alternate-clouds-cli` skill (`acc create agent` + `acc create swarm` + `acc swarms deploy`).
 
 ## Step 3 — collect required env vars
 

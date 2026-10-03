@@ -43,8 +43,8 @@ acc whoami --json
 #  "project":{"id":"...","name":"...","slug":"..."}}
 ```
 
-`organization` (acc 1.1.1+) is the org the CLI acts on; templates that need
-`AF_ORG_ID` (e.g. `alternate-agent`) take `organization.id`.
+`organization` (acc 1.1.1+) is the org the CLI acts on; templates whose env
+vars are marked platform-injected (`AF_ORG_ID`) take `organization.id`.
 
 **Automation / CI**: skip interactive login with env vars.
 
@@ -392,7 +392,7 @@ The flow (self-serve since 2026-09-14):
 ```bash
 npm install -g @alternatefutures/acc              # needs Node.js >= 20.17.0
 acc swarms init my-swarm && cd my-swarm            # same as `acc init`; 1.3.0 adds the `swarms init` spelling from the room-flow design
-acc add agent                                     # wizard: name, job, model selector, optional key paste
+acc add agent                                     # wizard: name, job, model selector (1.8.2: no key paste; the platform inference runs it)
 acc create agent researcher                       # flags: --model <provider/model>; default openai/gpt-5.6-sol (hosted-routable)
 acc add swarm                                     # wizard: plain-language shape, members
 acc create swarm review --shape sequential --members researcher
@@ -492,9 +492,10 @@ shows the result.
 `acc add agent [name]` is the step-by-step way to add an agent: name (one
 word, the `@mention`), its job (one sentence, becomes the persona), the model
 as a SELECTOR fed by the platform's curated list (`swarmModels`: GPT-5.6 sol
-default, Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5; never free text),
-then an optional hidden paste of the provider key (`OPENAI_API_KEY` or
-`ANTHROPIC_API_KEY`, stored as a project secret). It prints the equivalent
+default, Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5; never free text).
+It asks for no key (1.8.2; before, it offered a hidden paste of the provider
+key, which the platform has refused as a project secret since 2026-09-26:
+bring-your-own-key is `acc orgs providers set`). It prints the equivalent
 flags (`acc create agent <name> --model <id>`) at the end. `acc add swarm
 [name]` asks how the agents work together in plain words (one after another =
 `--shape sequential`, all at once = `parallel` + `--reducer`, with a lead =
@@ -637,11 +638,15 @@ acc services create --kind docker --name web --image nginx:1.27-alpine --port 80
 acc services create --kind docker --name infer --image my/llm:v1 --port 8080 \
   --gpu --gpu-model h100 --gpu-count 1 --region us-east -y
 
-# Confidential (TEE) deploy from a template, with a budget cap. The platform
-# injects the org id and delivers the inference credential itself (no key flags);
-# pick the model with --env MODEL_NAME=<registry id> (Org › Models decides access).
-acc services create --kind template --template alternate-agent \
-  --confidential --name secure-agent --env MODEL_NAME=gpt-5.4-mini --budget-monthly 20 -y
+# An agent on its own (2026-10-03): one agent whose team carries the SAME name,
+# so @<name> in the room reaches it. No template, no key: it runs on the swarm
+# runtime through the platform inference (Org › Models decides the model access).
+# The `alternate-agent` template is retired and no longer in the catalog.
+acc swarms init atlas && cd atlas && acc create agent atlas --model openai/gpt-5.6-sol
+acc create swarm atlas --shape sequential --members atlas
+acc swarms deploy atlas --yes
+acc swarms room atlas                       # passphrase + join command, then: @atlas hello
+acc chat join chat.alternatefutures.ai
 
 # Empty Ubuntu machine for SSH
 acc services create --kind server --name dev-box --os ubuntu:24.04 -y
