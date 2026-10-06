@@ -398,7 +398,7 @@ acc add swarm                                     # wizard: plain-language shape
 acc create swarm review --shape sequential --members researcher
 acc run review --input "Say hello in one sentence."         # 1.5.0: runs on this machine, model through the platform, no key needed
 acc swarms deploy review --yes                             # resolves the released runtime image from the signed runtime-image-current release; the API generates every other project secret on first deploy and mints the runtime's model token (no key needed since API 2026-09-18)
-acc swarms pull review                                     # 1.5.0: record the cloud's newest version in .af/swarms/review.json, report drift
+acc swarms pull review                                     # 1.5.0: record the cloud's newest version in .af/swarms/review.json, report drift (v<n> counts this team's own versions since API 2026-10-06; it was a platform-wide counter before)
 acc swarms push review                                     # 1.5.0: register this folder's definition on top of the pulled version (swarm_definition_stale ⇒ pull first, or --force)
 acc swarms deploy review --service swarm-runtime-review    # later deploys: reuse the existing runtime service
 acc swarms room review                                     # passphrase + join command for the swarm's encrypted chat room
