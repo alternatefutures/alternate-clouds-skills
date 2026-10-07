@@ -33,7 +33,7 @@ acc templates list                       # browse by category
 acc templates list --category AI_ML      # AI_ML | WEB_SERVER | GAME_SERVER | DATABASE | DEVTOOLS | CUSTOM
 ```
 
-Pick the template id (for example `postgres`, `redis`, `ollama-gpu`, `comfyui`, `minecraft-server`). An AI agent is not a template: see the "An agent on its own" recipe in the `alternate-clouds-cli` skill (`acc create agent` + `acc create swarm` + `acc swarms deploy`).
+Pick the template id (for example `postgres`, `redis`, `ollama-gpu`, `comfyui`, `minecraft-server`). Pre-configured open-model endpoints (one model each, registered under Org › Models when ready): `qwen3.8-27b`, `gpt-oss-20b`, `gemma4-31b`, `gemma4-12b`, `glm-4.7-flash`, `devstral-small-2`, `mistral-small-3.2`, `qwen3.6-27b` (24 GB-class GPU unless noted; the 20B and 12B fit 16 GB), `llama3.3-70b` (48 GB), `gpt-oss-120b` (80 GB). `ollama-gpu` is the pick-your-own-model version. An AI agent is not a template: see the "An agent on its own" recipe in the `alternate-clouds-cli` skill (`acc create agent` + `acc create swarm` + `acc swarms deploy`).
 
 ## Step 3 — collect required env vars
 
