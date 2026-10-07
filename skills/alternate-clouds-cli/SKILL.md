@@ -322,7 +322,19 @@ acc orgs providers list [--org <idOrSlug>]           # which providers have your
 pbpaste | tr -d '[:space:]' | acc orgs providers set openai --stdin [--org <idOrSlug>]   # bring your own key: verified, stored encrypted, never printed
 acc orgs providers unset openai [--org <idOrSlug>]   # back to the platform key
 acc models list [--org <idOrSlug>] [--all] [--json]  # the model catalog as the org sees it: on/off, list price per 1M tokens, billed via wallet, your key, or your own model server (`your server`: endpoints the org registered under Org › Models › Custom models, ids `custom/<service>:<model>`, no per-request charge)
+acc models endpoints [--org <idOrSlug>] [--json]     # the org's own model servers (Custom models): status, models, URL, last error (acc >= 1.9.0)
+acc models add <service> [--model <id>]... [--org <idOrSlug>] [--json]   # register a running service that serves an OpenAI-compatible API on its public port; its models become custom/<endpoint>:<model>
+pbpaste | acc models add <service> --token-stdin     # a server with its own API key (vLLM --api-key): the token is read from stdin only, never argv
+acc models refresh <endpoint> [--org <idOrSlug>]     # probe again (status, models)
+acc models remove <endpoint> --yes [--org <idOrSlug>]   # unregister; the service keeps running
 ```
+
+`models add|refresh|remove` need the owner or admin role. A model template
+registers itself once its model is pulled (the platform keeps it behind a
+bearer key it manages); `add` is for your own server, e.g. a GPU instance
+where you started `OLLAMA_HOST=0.0.0.0:8080 ollama serve` (the service's
+public port) or vLLM. Without a token the server is reachable by anyone who
+finds its URL: give the engine an API key and pass it with `--token-stdin`.
 
 `orgs providers set` needs the owner or admin role. Providers: `openai`,
 `anthropic`, `groq`, `together`, `deepseek`, `openrouter`, `xai`. With your key
