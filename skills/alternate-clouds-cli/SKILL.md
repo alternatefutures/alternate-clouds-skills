@@ -321,7 +321,7 @@ acc orgs list                                        # organizations you belong 
 acc orgs providers list [--org <idOrSlug>]           # which providers have your own key, how each is billed
 pbpaste | tr -d '[:space:]' | acc orgs providers set openai --stdin [--org <idOrSlug>]   # bring your own key: verified, stored encrypted, never printed
 acc orgs providers unset openai [--org <idOrSlug>]   # back to the platform key
-acc models list [--org <idOrSlug>] [--all] [--json]  # the model catalog as the org sees it: on/off, list price per 1M tokens, billed via wallet or your key
+acc models list [--org <idOrSlug>] [--all] [--json]  # the model catalog as the org sees it: on/off, list price per 1M tokens, billed via wallet, your key, or your own model server (`your server`: endpoints the org registered under Org › Models › Custom models, ids `custom/<service>:<model>`, no per-request charge)
 ```
 
 `orgs providers set` needs the owner or admin role. Providers: `openai`,
@@ -604,6 +604,19 @@ service id (`GET /billing/credits/org/<org>/usage?serviceId=`).
 without it the API resolves the single live runtime (stale rows of stopped
 swarms no longer cause `CONFLICT`; when two are live the CONFLICT message
 names them and says `--swarm`).
+
+`acc models test [model] --project <id> [--swarm <name>] [--force] [--json]`
+(the agent-readiness gate): the deployed runtime makes one real tool call on
+the model it serves and answers `passed`, `toolCallProtocol` and a
+`failureCode` (`native_tool_call_invalid`, `provider_unavailable`), cached 15
+minutes unless `--force`. Without a model it tests the deployed one (the model
+the agents declare); with one, pass the id as `acc models list` prints it
+(`openai/gpt-5.6-sol`, `custom/<service>:<model>` for an organization's own
+endpoint) and the answer names the runtime's wire form (`compat/<bare>`). A
+model the runtime does not serve is refused (`BAD_USER_INPUT`, "does not serve
+this model"), two provider segments are `identifier_invalid`, and a project in
+another organization answers NOT_FOUND until that org is selected (`acc
+whoami`; `AF_ORG_ID=<org id>` overrides it for one command).
 
 `acc run <swarm> --remote` (2026-09-14 output contract): the DEFAULT mode
 prints only the answer text (`output.content`) followed by
