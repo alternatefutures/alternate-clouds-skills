@@ -125,7 +125,7 @@ Shared deploy-side flags (also accepted by `services deploy`):
 | `--memory <s>` | e.g. `4Gi` |
 | `--storage <s>` | e.g. `20Gi` |
 | `--gpu` / `--no-gpu` | Attach a GPU (or skip one even if the template defaults to it) |
-| `--gpu-model <m>` | e.g. `h100`, `h200`, `a100`, `rtx4090` (lowercase). The interactive picker shows the live catalog. |
+| `--gpu-model <m>` | e.g. `h100`, `h200`, `a100`, `rtx4090` (lowercase). The interactive picker shows the live catalog, only GPUs whose driver and memory the template's engine can use, with "Any GPU that fits (cheapest first)" on top. |
 | `--gpu-count <n>` | Number of GPUs (1 to 8) |
 | `--spend <mode>` | `payg` \| `budget` \| `stop` |
 | `--budget-total <usd>` / `--budget-monthly <usd>` | Spend caps, enforced server-side |
@@ -136,10 +136,10 @@ Shared deploy-side flags (also accepted by `services deploy`):
 `-y` defaults in non-interactive mode:
 - spend → pay as you go, mode → standard, region → Any
 - cpu/memory/storage → template defaults (or 1 vCPU / 2Gi / 20Gi without a template)
-- gpu → off, unless the template defaults to a GPU (kept under `-y`; override with `--no-gpu`)
+- gpu → off, unless the template defaults to a GPU (kept under `-y`; override with `--no-gpu`); without `--gpu-model` that GPU is "any GPU that fits": the platform picks the cheapest card meeting the template's driver and memory floors (acc 1.8 and earlier defaulted to an H100)
 - server OS → `ubuntu:24.04`, Docker port → 80
 
-Required template env vars missing under `-y` produce a clear error listing them; pass each with `--env KEY=VALUE`.
+Required template env vars without a default, missing under `-y`, produce a clear error listing them; pass each with `--env KEY=VALUE`. Required vars that have a default use it.
 
 ### `services deploy`: redeploy an existing service
 
@@ -325,7 +325,7 @@ acc models list [--org <idOrSlug>] [--all] [--json]  # the model catalog as the 
 acc models endpoints [--org <idOrSlug>] [--json]     # the org's own model servers (Custom models): status, models, URL, last error (acc >= 1.9.0)
 acc models add <service> [--model <id>]... [--org <idOrSlug>] [--json]   # register a running service that serves an OpenAI-compatible API on its public port; its models become custom/<endpoint>:<model>
 pbpaste | acc models add <service> --token-stdin     # a server with its own API key (vLLM --api-key): the token is read from stdin only, never argv
-acc models refresh <endpoint> [--org <idOrSlug>]     # probe again (status, models)
+acc models refresh <endpoint> [--org <idOrSlug>]     # probe again (status, models); warns with the reason when unreachable or stopped
 acc models remove <endpoint> --yes [--org <idOrSlug>]   # unregister; the service keeps running
 ```
 
