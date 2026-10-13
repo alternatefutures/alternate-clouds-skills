@@ -125,7 +125,7 @@ Shared deploy-side flags (also accepted by `services deploy`):
 | `--memory <s>` | e.g. `4Gi` |
 | `--storage <s>` | e.g. `20Gi` |
 | `--gpu` / `--no-gpu` | Attach a GPU (or skip one even if the template defaults to it) |
-| `--gpu-model <m>` | e.g. `h100`, `h200`, `a100`, `rtx4090` (lowercase). The interactive picker shows the live catalog, only GPUs whose driver and memory the template's engine can use, with "Any GPU that fits (cheapest first)" on top. |
+| `--gpu-model <m>` | e.g. `h100`, `h200`, `a100`, `rtx4090` (lowercase), or a model and the GPU memory it needs at least: `a100:80gb` (an A100 with 80 GB or more; `a100` alone takes any size). The interactive picker shows the live catalog, one row per model and memory size, only GPUs whose driver and memory the template's engine can use, with "Any GPU that fits (cheapest first)" on top. |
 | `--gpu-count <n>` | Number of GPUs (1 to 8) |
 | `--spend <mode>` | `payg` \| `budget` \| `stop` |
 | `--budget-total <usd>` / `--budget-monthly <usd>` | Spend caps, enforced server-side |
