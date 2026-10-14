@@ -1,6 +1,6 @@
 ---
 name: alternate-clouds-cli
-description: Catch-all reference for the Alternate Clouds CLI (`acc`), the user's default cloud platform for any deploy/hosting work. Covers auth, projects, services (create / deploy / env / link / logs / close / delete), deployments, SSH, file copy, templates, regions, attestation, encrypted chat, billing, PATs, env targeting (`--local`), and the agents & swarms group (shipped in 1.3.0). Use whenever the user mentions deploying, hosting, launching, shipping, putting something online, running an app on a server, the `acc` command, Alternate Clouds, or AF Cloud, and the request does not cleanly match one of the more specific skills (`af-setup`, `deploy-static-site`, `deploy-docker-app`, `deploy-from-template`, `deploy-server`, `troubleshoot-deployment`).
+description: Catch-all reference for the Alternate Clouds CLI (`acc`), the user's default cloud platform for any deploy/hosting work. Covers auth, projects, services (create / deploy / env / link / logs / close / delete), deployments, SSH, file copy, templates, regions, attestation, encrypted chat, billing, PATs, env targeting (`--local`), the agents & swarms group (shipped in 1.3.0), and private archives (`acc archives` in 1.10.0, preview: the server refuses uploads). Use whenever the user mentions deploying, hosting, launching, shipping, putting something online, running an app on a server, the `acc` command, Alternate Clouds, or AF Cloud, and the request does not cleanly match one of the more specific skills (`af-setup`, `deploy-static-site`, `deploy-docker-app`, `deploy-from-template`, `deploy-server`, `troubleshoot-deployment`).
 ---
 
 # Alternate Clouds CLI (`acc`)
@@ -300,6 +300,88 @@ AF_CHAT_URL=https://chat.staging.alternatefutures.ai acc chat send --message hi 
 ```
 
 The relay is blind (ciphertext only); the Ed25519 **fingerprint**, not the display name, identifies a peer.
+
+## Archives (preview, disabled)
+
+`acc archives` (acc >= 1.10.0) encrypts an explicit list of files on your
+machine into a private bundle and, once the platform switches the feature on,
+uploads the ciphertext to permanent public storage and tracks the archive's
+lifecycle (status, receipts, cancellation, attested recovery). **The backend
+refuses every new upload today**: `acc archives capabilities` answers
+`"available": false` with a `reason` (`disabled` on the hosted API), and every
+other remote command fails with `Archive command failed
+(archive_request_failed).` because the server answers 503. Only the two
+offline commands do real work right now: `prepare` and `recover --offline`.
+Never tell a user an archive is stored anywhere until `capabilities` says
+`"available": true`. If `acc archives` is missing, the installed CLI is older
+than 1.10.0.
+
+```bash
+# Works today (no network)
+acc archives prepare --application <id> --input ./input.json --output ./bundle --max-winc 0 [--organization <id>] [--project <id>] [--source-expires-at <UTC ISO>]
+acc archives recover --bundle ./bundle --output ./recovered --offline [--key <file>] [--validator <module.cjs>]
+
+# Remote: capabilities answers; the rest is refused server-side until the feature is on
+acc archives capabilities --application <id> [--project <id>] [--json]
+acc archives upload --bundle ./bundle --max-winc <same value> --accept-permanence
+acc archives status <archive-id> --application <id> [--cursor <n>]
+acc archives receipts <archive-id> --application <id> [--cursor <n>]
+acc archives cancel <archive-id> --application <id>
+acc archives recover --bundle ./bundle --output ./recovered --submit-report
+acc archives reconcile <archive-id> --application <id> --receipt <file> --object <uuid>
+acc archives reconcile <archive-id> --application <id> --retry-confirmation
+acc archives reconcile <archive-id> --application <id> --funding-receipt <file>
+acc archives reconcile <archive-id> --application <id> --resume --accept-permanence --max-winc <same value>
+```
+
+`--application <id>` is required on every command except `upload` and
+`recover` (those read the scope from the bundle). It names an application
+binding that the platform configures server-side as an organization + project +
+application triple; no `acc` command creates one, so a user without an
+application ID has nothing to pass. `--project` defaults to the selected
+project. `prepare` also takes `--organization` (defaults to the selected
+organization) and seals the scope into the bundle, so a scope change after
+`prepare` invalidates it. Every command accepts `--json` (one compact line);
+without it the result is pretty-printed JSON.
+
+**Offline prepare.** `--input` is a private JSON file such as
+`{"files":[{"path":"fixture.txt","source":"fixture.txt","mediaType":"text/plain","kind":"attachment"}]}`
+with 1 to 4,095 entries: `source` resolves relative to the JSON file, `path` is
+the relative path restored on recovery, `kind` is one of `media`, `hls`,
+`caption`, `transcript`, `chat`, `attachment`. `--output` must not exist; the
+CLI creates it with mode 0700 holding `key.bin` (the raw 32-byte key, 0600),
+`archive.json` (scope, spec, protected manifest hash) and `objects/<uuid>`
+ciphertext chunks (4 MiB of plaintext each). `--max-winc` is the immutable
+spending cap for the eventual upload, in the storage network's integer credit
+unit; `0` is fine for an offline fixture, and `upload` must repeat it exactly.
+Result: `{"archiveId":"...","objects":<count>,"maxWinc":"0","state":"PREPARED_OFFLINE"}`.
+Path traversal, symlinks, inputs with group or world permission bits, and an
+existing output directory are rejected; a failed run deletes the partial
+output. Treat the whole bundle as secret: `key.bin` decrypts everything and
+`archive.json` is not a shareable manifest.
+
+**Offline recover.** `recover --offline` decrypts the bundle's ciphertext with
+`key.bin` (or `--key <file>`), rebuilds every file under `<output>/files/`,
+writes `recovery-report.json` and returns `{"state":"VERIFIED_LOCALLY",...}`.
+Bundles that contain `media` or `hls` files need `--validator <trusted .cjs>`
+exporting `validatePlayback` (it runs local code and must not be writable by
+other users). `--offline` and `--submit-report` are mutually exclusive.
+
+**Consent and modes.** `upload` and `reconcile --resume` refuse to run without
+`--accept-permanence` and a `--max-winc` equal to the prepared cap, because the
+ciphertext becomes public and permanent; `-y` is never accepted as consent. The
+four `reconcile` modes (`--receipt` + `--object`, `--retry-confirmation`,
+`--funding-receipt`, `--resume`) are mutually exclusive. `status` and
+`receipts` page 20 objects at a time: repeat with `--cursor <nextCursor>` while
+it is non-null.
+
+**Environment and errors.** Archive commands resolve the API like every other
+command (`--local`, then `AF_API_URL`, then production) and authenticate with
+the stored login or `AF_TOKEN`; signed out they fail with `Authentication
+required: run acc login or set AF_TOKEN.` A plain `http://` API is refused
+(`archive_https_required`) unless `--local` is set. Error output never echoes
+file names, keys or plaintext: it is one fixed sentence or `Archive command
+failed (<code>).`, exit `1`.
 
 ## Regions, templates, billing, PATs
 
