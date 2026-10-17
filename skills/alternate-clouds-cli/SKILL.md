@@ -107,7 +107,7 @@ acc services create [options]
 | Flag | Purpose |
 |---|---|
 | `--kind <k>` | `template` \| `docker` \| `server`. (`function` and `github` are accepted but not wired yet: those deploy from the web app.) |
-| `--name <name>` | Service name. Unique **platform-wide**: the slug becomes the public `<slug>-app.alternatefutures.ai` hostname. A name held by a service in another project surfaces as a server error; pick a different name. |
+| `--name <name>` | Service name. Unique **platform-wide**: the slug becomes the public `<slug>-app.alternatefutures.ai` hostname (`<slug>-app.staging.alternatefutures.ai` against staging). A name held by a service in another project surfaces as a server error; pick a different name. |
 | `--template <id>` | (kind=template) skip the catalog browse |
 | `--image <ref>` | (kind=docker) Docker image, e.g. `nginx:1.27-alpine`. Use versioned tags; providers cache by tag. |
 | `--port <n>` | (kind=docker) container port; defaults to 80 under `-y` |
@@ -141,6 +141,8 @@ Shared deploy-side flags (also accepted by `services deploy`):
 
 Required template env vars without a default, missing under `-y`, produce a clear error listing them; pass each with `--env KEY=VALUE`. Required vars that have a default use it.
 
+After the deploy starts, `services create` and `services deploy` watch it to the end. When an attempt fails (for example the public hostname never answers), the platform retries it automatically and the command follows each retry, printing `Attempt N failed` and `Retrying: attempt N+1, deployment <id>`. A GPU deploy that no GPU offer can take continues on another compute network, and the command follows it there. The command returns when a deployment is live, when the platform's retries are exhausted, or when a failed attempt gets no retry within 3 minutes. It prints the service URL the API reports, so a CLI pointed at staging prints the staging hostname. A deploy that ends failed exits `1`; acc 1.10.0 and earlier returned at the first failed attempt, exited `0`, and printed the production hostname on staging. If the watch itself times out (5 minutes per attempt on standard compute, 15 on GPU and confidential compute) the command exits `0` with an in-progress note; confirm with `acc services info <service>`.
+
 ### `services deploy`: redeploy an existing service
 
 ```bash
@@ -149,7 +151,7 @@ acc services deploy <id> --image ghcr.io/you/app@sha256:<digest>   # Docker serv
 acc --debug services deploy <id>                                   # also prints the manifest before it is submitted
 ```
 
-Same prompt chain as create (auto-confirms under `-y`). A redeploy is a new deployment; the URL does not change. Before anything is replaced, the CLI asks the API to build and validate the new manifest; a rejected manifest stops the command with the reasons and leaves the running deployment untouched. Standard-compute redeploys are then replaced by the server, which closes the old deployment only after that validation; confidential and GPU redeploys still close the current deployment first. `--image <ref>` (Docker services only) sets the image on the service before deploying, so a service pinned to a digest can ship new code without being recreated; it is refused for services that take their image from a template or a build. On a region soft-fail it prints two or three alternative regions with the exact retry command.
+Same prompt chain as create (auto-confirms under `-y`). A redeploy is a new deployment; the URL does not change. Before anything is replaced, the CLI asks the API to build and validate the new manifest; a rejected manifest stops the command with the reasons and leaves the running deployment untouched. Standard-compute redeploys are then replaced by the server, which closes the old deployment only after that validation; confidential and GPU redeploys still close the current deployment first. `--image <ref>` (Docker services only) sets the image on the service before deploying, so a service pinned to a digest can ship new code without being recreated; it is refused for services that take their image from a template or a build. On a region soft-fail it prints two or three alternative regions with the exact retry command. It follows the platform's automatic retries and sets the exit code like `services create` (above), and prints the service URL for every web-facing service (not for raw servers or swarms; acc 1.10.0 and earlier printed none on a Docker or template redeploy).
 
 ### `services env`: environment variables
 
@@ -771,6 +773,6 @@ acc services create --help
 ## Exit codes
 
 - `0` success
-- `1` hard failure (auth, validation, server error)
+- `1` hard failure (auth, validation, server error), and a `services create` / `services deploy` whose deploy ended failed after the platform's automatic retries
 - `2` region soft-fail (`AWAITING_REGION_RESPONSE`): no provider bid in the chosen region within the window; the CLI prints alternative regions with retry commands
 - `130` interactive prompt cancelled
