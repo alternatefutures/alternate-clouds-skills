@@ -1,6 +1,6 @@
 ---
 name: alternate-clouds-cli
-description: Catch-all reference for the Alternate Clouds CLI (`acc`), the user's default cloud platform for any deploy/hosting work. Covers auth, projects, services (create / deploy / env / link / logs / close / delete), deployments, SSH, file copy, templates, regions, attestation, encrypted chat, billing, PATs, env targeting (`--local`), the agents & swarms group (shipped in 1.3.0), and private archives (`acc archives` in 1.10.0, preview: the server refuses uploads). Use whenever the user mentions deploying, hosting, launching, shipping, putting something online, running an app on a server, the `acc` command, Alternate Clouds, or AF Cloud, and the request does not cleanly match one of the more specific skills (`af-setup`, `deploy-static-site`, `deploy-docker-app`, `deploy-from-template`, `deploy-server`, `troubleshoot-deployment`).
+description: Catch-all reference for the Alternate Clouds CLI (`acc`), the user's default cloud platform for any deploy/hosting work. Covers auth, projects, services (create / deploy / env / link / logs / close / delete), deployments, listed hosts (`acc hosts list` and the `--provider external:<handle>` pin, acc 1.11), SSH, file copy, templates, regions, attestation, encrypted chat, billing, PATs, env targeting (`--local`), the agents & swarms group (shipped in 1.3.0), and private archives (`acc archives` in 1.10.0, preview: the server refuses uploads). Use whenever the user mentions deploying, hosting, launching, shipping, putting something online, running an app on a server, the `acc` command, Alternate Clouds, or AF Cloud, and the request does not cleanly match one of the more specific skills (`af-setup`, `deploy-static-site`, `deploy-docker-app`, `deploy-from-template`, `deploy-server`, `troubleshoot-deployment`).
 ---
 
 # Alternate Clouds CLI (`acc`)
@@ -120,6 +120,8 @@ Shared deploy-side flags (also accepted by `services deploy`):
 | Flag | Purpose |
 |---|---|
 | `--confidential` | Run inside a trusted execution environment (TEE) with remote attestation. Otherwise standard compute. |
+| `--provider external:<handle>` | (acc >= 1.11) Pin the deploy to one listed host from `acc hosts list` (the only placement the user picks; see "Placement"). Not with `--confidential`. |
+| `--offer <id>` | (acc >= 1.11, with `--provider`) The host's offer id from `acc hosts list`; omit to take the cheapest offer that fits the service. |
 | `--region <r>` | `us-east` \| `us-west` \| `eu` \| `asia`. Omit = "Any (cheapest globally)". |
 | `--cpu <n>` | vCPUs |
 | `--memory <s>` | e.g. `4Gi` |
@@ -189,6 +191,33 @@ the CLI today, delete and recreate it with the new tag.
 - Standard CPU workloads go to general compute providers.
 - A service with a prior deployment stays on the same provider while its spec
   is unchanged.
+- **The one exception (acc >= 1.11): a listed-host pin.** A listed host is an
+  outside operator the platform accepted, shown by a stable pseudonymous handle
+  (`host-xxxx`) and capability labels, never by name. `acc hosts list` prints
+  the hosts, their offers (hardware, region bucket, USD/hour before the plan
+  markup, units in stock) and whether each is accepting deployments;
+  `--gpu`, `--region <bucket>` and `--json` filter and format it.
+  `acc services deploy <id> --provider external:<handle> [--offer <id>]` (and
+  `services create` with the same flags) sends that deploy to that host and
+  never falls back to another network; without `--offer` the cheapest offer
+  that fits the service is taken. The organization needs a card on file: usage
+  on a listed host is charged on the host's own billing rail, not the credit
+  wallet. A service live on a listed host stays there on redeploy (the server
+  replaces the row blue/green). Refusals are one sentence with the next step:
+  `Deploying on a listed host needs a card on file for your organization. Add
+  one under Billing in the web app, then run the command again.`; `The offer
+  on <host> is sold out right now. Pick another offer from "acc hosts list" or
+  try again later.`; `No offer on <host> fits this service's CPU, memory,
+  storage or GPU request. Lower the resources, pass a larger --offer, or pick
+  another host from "acc hosts list".`; `<host> cannot take a new deployment
+  right now (<reason>). Pick another host from "acc hosts list" or try again
+  later.`; `<host> did not accept the deployment right now (<reason>). Try again
+  in a few minutes; if it keeps failing, pick another host from "acc hosts
+  list".`; `No listed host has the handle "<host>". Run "acc hosts list" for
+  the current handles.` `acc services info` shows the host handle, label,
+  offer, cost per hour and endpoint of a pinned service; `acc deployments`
+  lists such rows as `Listed host`. Against an API older than 2026-11-06 the
+  pin needs an explicit `--offer`.
 
 ## Deployments (cross-project view)
 
@@ -389,6 +418,7 @@ failed (<code>).`, exit `1`.
 
 ```bash
 acc regions [--provider general|confidential] [--gpu h100|h200|a100|rtx4090]   # availability + pricing; --provider is the compute tier: general (default) or confidential (TEE, single-region)
+acc hosts list [--gpu] [--region us-east|us-west|eu|asia] [--json]           # (acc >= 1.11) the listed hosts a deploy can be pinned to: handle, capabilities, offers with USD/hour; see "Placement"
 acc templates list [--category AI_ML|WEB_SERVER|GAME_SERVER|DATABASE|DEVTOOLS|CUSTOM]
 acc templates info <templateId>        # resources, ports, required env vars
 acc billing balance                    # credit wallet of the active organization
